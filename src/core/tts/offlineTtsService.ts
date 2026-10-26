@@ -237,7 +237,7 @@ export class OfflineTtsService implements TtsController {
       // En Android nativo, 1.0 mantiene la resonancia humana pura sin distorsión metálica por cambio de tono
       const pitch = 1.0;
 
-      TextToSpeech.speak({
+      const speakPromise = TextToSpeech.speak({
         text: chunk.text,
         lang: targetLang,
         rate,
@@ -245,7 +245,15 @@ export class OfflineTtsService implements TtsController {
         volume: 1.0,
         voice: targetVoiceIndex >= 0 ? targetVoiceIndex : undefined,
         category: 'playback',
-      })
+      });
+
+      // Máximo tiempo de espera prudente para evitar que un chunk colgado congele la app
+      const maxTimeoutMs = Math.max(chunk.text.length * 160, 10000);
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error('TTS_CHUNK_TIMEOUT')), maxTimeoutMs);
+      });
+
+      Promise.race([speakPromise, timeoutPromise])
         .then(() => {
           this.playChunkRetryCount = 0;
           if (!this.state.isPlaying || this.state.isPaused) return;
@@ -256,16 +264,16 @@ export class OfflineTtsService implements TtsController {
           }, chunk.pauseAfterMs || 250);
         })
         .catch((err) => {
-          console.warn(`[TTS Nativo Android] Error en chunk ${index}:`, err);
+          console.warn(`[TTS Nativo Android] Error o reconexión en chunk ${index}:`, err);
           if (!this.state.isPlaying || this.state.isPaused) return;
-          // Reintentar el mismo chunk si el servicio nativo aún estaba inicializándose
-          if (this.playChunkRetryCount < 2) {
+          // Reintentar el mismo chunk con espera suficiente para reconexión de DeadObject/rebind (1.4s)
+          if (this.playChunkRetryCount < 3) {
             this.playChunkRetryCount++;
             this.pauseTimeoutId = setTimeout(() => {
               if (this.state.isPlaying && !this.state.isPaused) {
                 this.playChunk(index);
               }
-            }, 450);
+            }, 1400);
             return;
           }
           this.playChunkRetryCount = 0;
@@ -273,7 +281,7 @@ export class OfflineTtsService implements TtsController {
             if (this.state.isPlaying && !this.state.isPaused) {
               this.playChunk(index + 1);
             }
-          }, 350);
+          }, 400);
         });
       return;
     }
