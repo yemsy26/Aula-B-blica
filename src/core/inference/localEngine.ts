@@ -15,6 +15,11 @@ import {
   composeDoctrinaSistematica,
   composeCeremoniaEspecial,
 } from './homileticGenerators.js';
+import {
+  extractBiblicalReference,
+  composeSpecificPassageExegesis,
+  composeBookStudyGuide,
+} from './passageExegesisService.js';
 
 /**
  * Sintetizador Exegético Dinámico Universal:
@@ -35,7 +40,8 @@ export class DynamicTheologicalComposer {
     format?: MinistryFormat
   ): string {
     const activeFormat = format && format !== 'AUTO' ? format : classifyMinistryFormat(prompt);
-    const detectedBook = findCanonicalBook(prompt);
+    const specificPassage = extractBiblicalReference(prompt);
+    const detectedBook = specificPassage?.canonicalBook || findCanonicalBook(prompt);
     const mirror = findBiblicalMirror(prompt);
     const lowerPrompt = prompt.toLowerCase();
 
@@ -69,7 +75,9 @@ export class DynamicTheologicalComposer {
     let secondCitation = availableCitations[1];
 
     if (!firstCitation) {
-      if (mirror) {
+      if (specificPassage) {
+        firstCitation = specificPassage.formattedCitation;
+      } else if (mirror) {
         firstCitation = mirror.versiculosClave[0];
       } else if (detectedBook) {
         firstCitation = `${detectedBook.nombre} ${detectedBook.versiculosClaveRefs[0] || '1:1'}`;
@@ -109,6 +117,11 @@ export class DynamicTheologicalComposer {
     // 1. RUTA: CREADOR DE ESTUDIO / HOMILÉTICA / ANÁLISIS EXEGÉTICO
     // =========================================================================
     if (route === '[CREADOR_ESTUDIO]') {
+      // 0. Si se solicita estudio detallado o exégesis de un versículo o pasaje específico (ej: Salmos 23:1, Juan 3:16)
+      if (specificPassage && (specificPassage.isVerseSpecific || specificPassage.isChapterSpecific)) {
+        return composeSpecificPassageExegesis(specificPassage, level, prompt, availableCitations);
+      }
+
       // A. Si se pide estudiar una situación humana con Espejo Bíblico (deudas, desánimo, etc.)
       if (mirror && !detectedBook) {
         return (
@@ -130,6 +143,21 @@ export class DynamicTheologicalComposer {
 
       // B. Si se pide estudiar uno de los 66 Libros Canónicos
       if (detectedBook) {
+        // Guía pedagógica para estudiar el libro completo cuando el usuario pide aprender o estudiar el libro
+        const wantsBookStudyGuide =
+          lowerPrompt.includes('libro de') ||
+          lowerPrompt.includes('como estudiar') ||
+          lowerPrompt.includes('cómo estudiar') ||
+          lowerPrompt.includes('guia') ||
+          lowerPrompt.includes('guía') ||
+          lowerPrompt.includes('estudiar el libro') ||
+          lowerPrompt.includes('ensenanza del libro') ||
+          lowerPrompt.includes('panorama');
+
+        if (wantsBookStudyGuide) {
+          return composeBookStudyGuide(detectedBook, level, prompt, availableCitations);
+        }
+
         if (level === 'Semilla') {
           return (
             `### Guía y Estudio Devocional: ${detectedBook.nombre}\n\n` +
@@ -231,6 +259,28 @@ export class DynamicTheologicalComposer {
     // 2. RUTA: BÚSQUEDA EXACTA / CONCORDANCIA / PASAJES ESPECÍFICOS
     // =========================================================================
     if (route === '[BUSQUEDA_EXACTA]') {
+      if (
+        specificPassage &&
+        (specificPassage.isVerseSpecific || specificPassage.isChapterSpecific) &&
+        (lowerPrompt.includes('estudio') ||
+          lowerPrompt.includes('explica') ||
+          lowerPrompt.includes('significa') ||
+          lowerPrompt.includes('detall') ||
+          lowerPrompt.includes('profundiz') ||
+          lowerPrompt.includes('defin'))
+      ) {
+        return composeSpecificPassageExegesis(specificPassage, level, prompt, availableCitations);
+      }
+
+      if (specificPassage && specificPassage.isVerseSpecific) {
+        return (
+          `En las Escrituras encontramos este testimonio inmutable para tu consulta:\n\n` +
+          `[CITA: ${specificPassage.formattedCitation}]\n\n` +
+          (availableCitations.length > 1 ? `Conectado en armonía con:\n\n[CITA: ${secondCitation}]\n\n` : '') +
+          `Este texto sagrado expone la fidelidad eterna de Dios y su cuidado providencial para con su pueblo.`
+        );
+      }
+
       if (lowerPrompt.includes('pastor') || lowerPrompt.includes('23')) {
         return (
           `El Salmo 23 es la expresión suprema de descanso en la providencia y protección del Señor:\n\n` +
@@ -267,6 +317,19 @@ export class DynamicTheologicalComposer {
     // =========================================================================
     // 3. RUTA: CHARLA Y CONSEJERÍA PASTORAL ("CERO ROBOT" + PING-PONG CONVERSACIONAL)
     // =========================================================================
+
+    // Si dentro de una charla se pide exégesis o explicación detallada de un versículo
+    if (
+      specificPassage &&
+      (specificPassage.isVerseSpecific || specificPassage.isChapterSpecific) &&
+      (lowerPrompt.includes('estudio') ||
+        lowerPrompt.includes('explica') ||
+        lowerPrompt.includes('significa') ||
+        lowerPrompt.includes('detall') ||
+        lowerPrompt.includes('defin'))
+    ) {
+      return composeSpecificPassageExegesis(specificPassage, level, prompt, availableCitations);
+    }
 
     // Si coincide con un Espejo Bíblico (deudas, agotamiento, miedo, etc.)
     if (mirror) {
@@ -348,7 +411,7 @@ export class DynamicTheologicalComposer {
 }
 
 export class LocalDeterministicEngine implements InferenceEngine {
-  private activeModel: ModelProfileId | 'MOCK' = 'MOCK';
+  private activeModel: ModelProfileId | 'DETERMINISTIC' = 'DETERMINISTIC';
   private ready: boolean = true;
   private busy: boolean = false;
 
@@ -360,11 +423,11 @@ export class LocalDeterministicEngine implements InferenceEngine {
     return this.busy;
   }
 
-  getActiveModelId(): ModelProfileId | 'MOCK' {
+  getActiveModelId(): ModelProfileId | 'DETERMINISTIC' {
     return this.activeModel;
   }
 
-  setActiveModelId(modelId: ModelProfileId | 'MOCK') {
+  setActiveModelId(modelId: ModelProfileId | 'DETERMINISTIC') {
     this.activeModel = modelId;
   }
 

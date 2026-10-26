@@ -121,6 +121,22 @@ describe('RAG Híbrido - Recuperador Ponderado y Expansión Canónica', () => {
     const scored = retriever.retrieve(rewrite, 'Maestro', 5);
     expect(scored.some((s) => s.versiculo.libro_nombre === 'Apocalipsis')).toBe(true);
   });
+
+  it('debe priorizar con puntuación máxima la cita bíblica exacta cuando el usuario pide salmo 23:1', () => {
+    const rewrite = rewriteTheologicalIntent(
+      'dame un estudio detallado del salmo 23:1',
+      'dame un estudio detallado del salmo 23:1'
+    );
+
+    const scored = retriever.retrieve(rewrite, 'Discipulo', 5);
+    expect(scored.length).toBeGreaterThan(0);
+    // El primer versículo devuelto debe ser exactamente Salmos 23:1
+    expect(scored[0].versiculo.libro_nombre).toBe('Salmos');
+    expect(scored[0].versiculo.capitulo).toBe(23);
+    expect(scored[0].versiculo.versiculo).toBe(1);
+    expect(scored[0].versiculo.texto).toContain('JEHOVA es mi pastor');
+    expect(scored[0].puntaje).toBe(100);
+  });
 });
 
 describe('RAG Híbrido - Empaquetador de Contexto y Presupuesto de Tokens', () => {

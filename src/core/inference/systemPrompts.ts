@@ -52,7 +52,10 @@ export function getPersonalityConfig(
       break;
     case '[CREADOR_ESTUDIO]':
       routeInstruction =
-        'OBJETIVO: Diseña un bosquejo homilético formal: 1. Título Doctrinal, 2. Tema Central, 3. Puntos Principales con sus correspondientes [CITA: ...], y 4. Aplicación Pastoral / Desafío Ministerial.';
+        'OBJETIVO (CREADOR DE ESTUDIO Y EXÉGESIS):\n' +
+        '- Si el usuario solicita un versículo o pasaje específico (ej: Salmo 23:1, Juan 3:16): Proporciona un estudio exegético riguroso y centrado en ESE pasaje exacto. Jamás des un bosquejo genérico del libro completo. Define las palabras clave en su idioma original (hebreo/griego), aclara qué significa y qué NO significa el texto para evitar doctrinas inventadas o alucinaciones (desmontando desvíos populares), y conecta con Cristo y la aplicación personal.\n' +
+        '- Si el usuario solicita estudiar un libro completo: Actúa como un guía pedagógico. Define de antemano los términos doctrinales fundamentales del libro para evitar malas interpretaciones, presenta una hoja de ruta por etapas y acompáñalo paso a paso invitándolo a iniciar por el primer módulo.\n' +
+        '- Si se solicita un sermón o bosquejo formal: Diseña el bosquejo homilético formal con citas exactas [CITA: ...].';
       break;
     case '[CHARLA_CONSEJERIA]':
       routeInstruction =
@@ -71,6 +74,10 @@ export function getPersonalityConfig(
     'REGLA INQUEBRANTABLE (0% ALUCINACIÓN):',
     'Tienes prohibido citar versículos de memoria o alterar sus palabras.',
     'Para citar cualquier pasaje, utiliza obligatoriamente la etiqueta exacta: [CITA: Libro Cap:Vers] (ejemplo: [CITA: Juan 3:16] o [CITA: Salmos 23:1-4]). El motor local inyectará el texto literal canónico inmutable de RV1909.',
+    '',
+    'PRECISIÓN CONCEPTUAL Y DEFINICIÓN DE TÉRMINOS:',
+    '- Para evitar interpretaciones erróneas, descontextualizadas o doctrinas inventadas, define y explica siempre los términos bíblicos fundamentales y su sentido original en hebreo o griego.',
+    '- Confronta con caridad las malas interpretaciones populares y aclara qué significa y qué NO significa el texto en su contexto gramático-histórico.',
     '',
     levelInstruction,
     routeInstruction,

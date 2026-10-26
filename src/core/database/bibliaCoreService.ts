@@ -229,6 +229,21 @@ export class BibliaCoreService {
   }
 
   /**
+   * Obtiene todos los versículos de un capítulo ordenados consecutivamente
+   */
+  getVersesByChapter(book: string, chapter: number, version: string = 'RV1909'): VerseSeed[] {
+    const res = this.db.query<VerseSeed>(
+      `SELECT libro_id, libro_nombre, capitulo, versiculo, texto, version 
+       FROM versiculos 
+       WHERE LOWER(libro_nombre) = LOWER(?) AND capitulo = ? AND version = ?
+       ORDER BY versiculo ASC`,
+      [book, chapter, version]
+    );
+
+    return res.rows;
+  }
+
+  /**
    * Obtiene versículos representativos de un libro específico
    */
   getVersesByBook(book: string, limit: number = 6, version: string = 'RV1909'): VerseSeed[] {

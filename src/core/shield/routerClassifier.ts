@@ -2,7 +2,7 @@ import { TheologicalRoute, UserTheologicalLevel, MinistryFormat } from './types.
 import { findCanonicalBook } from '../database/canonicalBooks.js';
 
 // Patrones de búsqueda exacta: Citas bíblicas explícitas, concordancia, o búsqueda textual directa
-const VERSE_CITATION_REGEX = /\b(?:[1-3]\s*)?[A-ZÁÉÍÓÚ][a-záéíóúñ]+\s+\d{1,3}(?:[:.]\d{1,3}(?:-\d{1,3})?)?\b/;
+const VERSE_CITATION_REGEX = /\b(?:[1-3]\s*)?[A-Za-zÁÉÍÓÚáéíóúñ]+\s+\d{1,3}(?:[:.]\d{1,3}(?:-\d{1,3})?)?\b/i;
 const STRONG_CODE_REGEX = /\b[HGhg]\d{1,5}\b/;
 const EXACT_SEARCH_KEYWORDS = [
   'donde dice',
@@ -353,7 +353,7 @@ export function classifyRoute(text: string): TheologicalRoute {
     return '[CREADOR_ESTUDIO]';
   }
 
-  // 3. Citas bíblicas explícitas (ej: Juan 3:16) o códigos Strong (ej: H1254) sin petición de bosquejo
+  // 3. Citas bíblicas explícitas (ej: Juan 3:16) o códigos Strong (ej: H1254) sin petición de bosquejo o estudio detallado
   const isExplicitCitation = STRONG_CODE_REGEX.test(text) || VERSE_CITATION_REGEX.test(text);
   const isExplicitStudyRequest = [
     'bosquejo',
@@ -361,9 +361,19 @@ export function classifyRoute(text: string): TheologicalRoute {
     'sermón',
     'predica',
     'prédica',
+    'estudio',
+    'estudiar',
     'estudio inductivo',
     'crear un estudio',
     'diseña una enseñanza',
+    'detalle',
+    'detallado',
+    'exégesis',
+    'exegesis',
+    'explica',
+    'explícame',
+    'explicame',
+    'profundizar',
   ].some((k) => lower.includes(k));
 
   if (isExplicitCitation && !isExplicitStudyRequest) {

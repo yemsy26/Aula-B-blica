@@ -76,6 +76,15 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     texto: 'Y dijo Dios: Sea la luz: y fué la luz.',
     version: 'RV1909',
   },
+  // Génesis 50 (Providencia Soberana)
+  {
+    libro_id: 1,
+    libro_nombre: 'Génesis',
+    capitulo: 50,
+    versiculo: 20,
+    texto: 'Vosotros pensasteis mal sobre mí, mas Dios lo encaminó á bien, para hacer lo que vemos hoy, para mantener en vida á mucho pueblo.',
+    version: 'RV1909',
+  },
   // Salmos 23
   {
     libro_id: 19,
@@ -109,6 +118,22 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     texto: 'Aunque ande en valle de sombra de muerte, No temeré mal alguno; porque tú estarás conmigo: Tu vara y tu cayado me infundirán aliento.',
     version: 'RV1909',
   },
+  {
+    libro_id: 19,
+    libro_nombre: 'Salmos',
+    capitulo: 23,
+    versiculo: 5,
+    texto: 'Aderezarás mesa delante de mí en presencia de mis angustiadores: Ungiste mi cabeza con aceite; mi copa está rebosando.',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 19,
+    libro_nombre: 'Salmos',
+    capitulo: 23,
+    versiculo: 6,
+    texto: 'Ciertamente el bien y la misericordia me seguirán todos los días de mi vida: Y en la casa de Jehová moraré por largos días.',
+    version: 'RV1909',
+  },
   // Salmos 34
   {
     libro_id: 19,
@@ -116,6 +141,15 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     capitulo: 34,
     versiculo: 18,
     texto: 'Cercano está Jehová á los quebrantados de corazón; Y salvará á los contritos de espíritu.',
+    version: 'RV1909',
+  },
+  // Salmos 119
+  {
+    libro_id: 19,
+    libro_nombre: 'Salmos',
+    capitulo: 119,
+    versiculo: 105,
+    texto: 'LÁMPARA es á mis pies tu palabra, Y lumbrera á mi camino.',
     version: 'RV1909',
   },
   // Proverbios 3
@@ -196,6 +230,39 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     texto: 'Porque no envió Dios á su Hijo al mundo para que condene al mundo, mas para que el mundo sea salvo por él.',
     version: 'RV1909',
   },
+  // Juan 10 (El Buen Pastor)
+  {
+    libro_id: 43,
+    libro_nombre: 'Juan',
+    capitulo: 10,
+    versiculo: 11,
+    texto: 'Yo soy el buen pastor: el buen pastor su vida da por las ovejas.',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 43,
+    libro_nombre: 'Juan',
+    capitulo: 10,
+    versiculo: 14,
+    texto: 'Yo soy el buen pastor; y conozco mis ovejas, y las mías me conocen,',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 43,
+    libro_nombre: 'Juan',
+    capitulo: 10,
+    versiculo: 27,
+    texto: 'Mis ovejas oyen mi voz, y yo las conozco, y me siguen;',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 43,
+    libro_nombre: 'Juan',
+    capitulo: 10,
+    versiculo: 28,
+    texto: 'Y yo les doy vida eterna y no perecerán para siempre, ni nadie las arrebatará de mi mano.',
+    version: 'RV1909',
+  },
   // Romanos 3
   {
     libro_id: 45,
@@ -205,13 +272,71 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     texto: 'Por cuanto todos pecaron, y están destituidos de la gloria de Dios;',
     version: 'RV1909',
   },
+  {
+    libro_id: 45,
+    libro_nombre: 'Romanos',
+    capitulo: 3,
+    versiculo: 24,
+    texto: 'Siendo justificados gratuitamente por su gracia por la redención que es en Cristo Jesús;',
+    version: 'RV1909',
+  },
+  // Romanos 4
+  {
+    libro_id: 45,
+    libro_nombre: 'Romanos',
+    capitulo: 4,
+    versiculo: 3,
+    texto: 'Porque ¿qué dice la Escritura? Y creyó Abraham á Dios, y le fué atribuído á justicia.',
+    version: 'RV1909',
+  },
+  // Romanos 5
+  {
+    libro_id: 45,
+    libro_nombre: 'Romanos',
+    capitulo: 5,
+    versiculo: 8,
+    texto: 'Mas Dios encarece su caridad para con nosotros, porque siendo aún pecadores, Cristo murió por nosotros.',
+    version: 'RV1909',
+  },
   // Romanos 8
+  {
+    libro_id: 45,
+    libro_nombre: 'Romanos',
+    capitulo: 8,
+    versiculo: 1,
+    texto: 'AHORA pues, ninguna condenación hay para los que están en Cristo Jesús, los que no andan conforme á la carne, mas conforme al espíritu.',
+    version: 'RV1909',
+  },
   {
     libro_id: 45,
     libro_nombre: 'Romanos',
     capitulo: 8,
     versiculo: 28,
     texto: 'Y sabemos que á los que á Dios aman, todas las cosas les ayudan á bien, es á saber, á los que conforme al propósito son llamados.',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 45,
+    libro_nombre: 'Romanos',
+    capitulo: 8,
+    versiculo: 31,
+    texto: '¿Pues qué diremos á esto? Si Dios por nosotros, ¿quién contra nosotros?',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 45,
+    libro_nombre: 'Romanos',
+    capitulo: 8,
+    versiculo: 38,
+    texto: 'Por lo cual estoy cierto que ni la muerte, ni la vida, ni ángeles, ni principados, ni potestades, ni lo presente, ni lo por venir,',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 45,
+    libro_nombre: 'Romanos',
+    capitulo: 8,
+    versiculo: 39,
+    texto: 'Ni lo alto, ni lo bajo, ni ninguna criatura nos podrá apartar del amor de Dios, que es en Cristo Jesús Señor nuestro.',
     version: 'RV1909',
   },
   // Efesios 2
@@ -256,6 +381,23 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     texto: 'Todo lo puedo en Cristo que me fortalece.',
     version: 'RV1909',
   },
+  {
+    libro_id: 50,
+    libro_nombre: 'Filipenses',
+    capitulo: 4,
+    versiculo: 19,
+    texto: 'Mi Dios, pues, suplirá todo lo que os falta conforme á sus riquezas en gloria en Cristo Jesús.',
+    version: 'RV1909',
+  },
+  // 2 Corintios 12
+  {
+    libro_id: 47,
+    libro_nombre: '2 Corintios',
+    capitulo: 12,
+    versiculo: 9,
+    texto: 'Y me ha dicho: Bástate mi gracia; porque mi potencia en la flaqueza se perfecciona. Por tanto, de buena gana me gloriaré más bien en mis flaquezas, porque habite en mí la potencia de Cristo.',
+    version: 'RV1909',
+  },
   // Romanos 5
   {
     libro_id: 45,
@@ -290,6 +432,31 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     capitulo: 4,
     versiculo: 8,
     texto: 'El que no ama, no conoce á Dios; porque Dios es amor.',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 62,
+    libro_nombre: '1 Juan',
+    capitulo: 4,
+    versiculo: 9,
+    texto: 'En esto se mostró el amor de Dios para con nosotros, en que Dios envió á su Hijo unigénito al mundo, para que vivamos por él.',
+    version: 'RV1909',
+  },
+  // 1 Pedro 2
+  {
+    libro_id: 60,
+    libro_nombre: '1 Pedro',
+    capitulo: 2,
+    versiculo: 24,
+    texto: 'El cual mismo llevó nuestros pecados en su cuerpo sobre el madero, para que nosotros siendo muertos á los pecados, vivamos á la justicia: por la herida del cual habéis sido sanados.',
+    version: 'RV1909',
+  },
+  {
+    libro_id: 60,
+    libro_nombre: '1 Pedro',
+    capitulo: 2,
+    versiculo: 25,
+    texto: 'Porque vosotros erais como ovejas descarriadas; mas ahora habéis vuelto al Pastor y Obispo de vuestras almas.',
     version: 'RV1909',
   },
   // Apocalipsis 21
@@ -399,6 +566,15 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     texto: 'Toda Escritura es inspirada divinamente y útil para enseñar, para redargüir, para corregir, para instituir en justicia,',
     version: 'RV1909',
   },
+  // Hebreos 2
+  {
+    libro_id: 58,
+    libro_nombre: 'Hebreos',
+    capitulo: 2,
+    versiculo: 14,
+    texto: 'Así que, por cuanto los hijos participaron de carne y sangre, él también participó juntamente de lo mismo, para destruir por la muerte al que tenía el imperio de la muerte, es á saber, al diablo,',
+    version: 'RV1909',
+  },
   // Hebreos 11
   {
     libro_id: 58,
@@ -415,6 +591,15 @@ export const CORE_VERSES_RV1909: VerseSeed[] = [
     capitulo: 12,
     versiculo: 2,
     texto: 'Puestos los ojos en al autor y consumador de la fe, en Jesús; el cual, habiéndole sido propuesto gozo, sufrió la cruz, menospreciando la vergüenza, y sentóse á la diestra del trono de Dios.',
+    version: 'RV1909',
+  },
+  // Hebreos 13 (El Gran Pastor)
+  {
+    libro_id: 58,
+    libro_nombre: 'Hebreos',
+    capitulo: 13,
+    versiculo: 20,
+    texto: 'Y el Dios de paz que sacó de los muertos á nuestro Señor Jesucristo, el gran pastor de las ovejas, por la sangre del testamento eterno,',
     version: 'RV1909',
   },
   // Apocalipsis 1

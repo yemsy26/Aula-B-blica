@@ -320,7 +320,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
       )}
 
       {/* Feed de Mensajes con Scroll Independiente y Espacio para Cápsula Flotante */}
-      <div className="flex-1 overflow-y-auto px-3 sm:px-6 pt-3 sm:pt-4 pb-48 sm:pb-52 space-y-4 sm:space-y-6">
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6 pt-3 sm:pt-4 pb-64 sm:pb-52 space-y-4 sm:space-y-6">
         {/* Tarjeta Devocional Pan Diario dentro del Scroll (no bloquea mensajes) */}
         {showDailyBread && dailyBreadData && (
           <DailyBreadCard
@@ -484,14 +484,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         <span className="font-mono text-[9px] sm:text-[10px]">Citas Exactas {activeBibleVersion || 'RV1909'}</span>
                       </div>
 
-                      <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                         <button
                           type="button"
                           onClick={() => toggleSpeak(msg.id, msg.content)}
-                          className={`flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded transition-colors text-[10px] sm:text-[11px] ${
+                          className={`flex items-center gap-1 px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-lg transition-all text-[11px] sm:text-[11px] cursor-pointer touch-manipulation active:scale-95 ${
                             playingMessageId === msg.id
-                              ? 'bg-rose-950/80 text-rose-300 border border-rose-500/40'
-                              : 'bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-sacred-gold'
+                              ? 'bg-rose-950/90 text-rose-300 border border-rose-500/50 shadow-sm'
+                              : 'bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-sacred-gold border border-nocturne-750'
                           }`}
                           title="Leer con voz offline natural"
                         >
@@ -506,7 +506,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         <button
                           type="button"
                           onClick={() => onPinToStudy(msg)}
-                          className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-sacred-gold transition-colors text-[10px] sm:text-[11px]"
+                          className="flex items-center gap-1 px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-lg bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-sacred-gold transition-all text-[11px] sm:text-[11px] cursor-pointer touch-manipulation active:scale-95 border border-nocturne-750"
                           title="Fijar en Pizarra de Estudio"
                         >
                           <BookmarkPlus className="w-3 h-3" />
@@ -516,7 +516,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         <button
                           type="button"
                           onClick={() => copyText(msg.id, msg.content)}
-                          className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-zinc-900 transition-colors text-[10px] sm:text-[11px]"
+                          className="flex items-center gap-1 px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-lg bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-zinc-900 transition-all text-[11px] sm:text-[11px] cursor-pointer touch-manipulation active:scale-95 border border-nocturne-750"
                           title="Copiar texto"
                         >
                           {copiedId === msg.id ? (
@@ -553,9 +553,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
       {/* Cápsula Flotante de Entrada de Texto (Diseño Moderno Glassmorphic Transparent) */}
       <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-5 pointer-events-none z-20">
         <div className="max-w-3xl mx-auto space-y-2 pointer-events-auto">
-          {/* Telemetría del Escudo Limpiador y RAG Híbrido en Tiempo Real */}
+          {/* Telemetría del Escudo Limpiador y RAG Híbrido en Tiempo Real (visible en pantallas medianas/grandes, oculto en móvil para no tapar contenido) */}
           {lastShieldResult && (
-            <div className="px-3.5 py-1.5 bg-nocturne-900/80 backdrop-blur-xl rounded-2xl border border-nocturne-800 flex flex-wrap items-center justify-between gap-1 text-[9px] sm:text-[10px] text-zinc-400 font-mono shadow-lg">
+            <div className="hidden sm:flex px-3.5 py-1.5 bg-nocturne-900/80 backdrop-blur-xl rounded-2xl border border-nocturne-800 flex-wrap items-center justify-between gap-1 text-[9px] sm:text-[10px] text-zinc-400 font-mono shadow-lg">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <Zap className="w-3 h-3 text-sacred-gold" />
                 <span>Escudo: {lastShieldResult.processingTimeMs} ms</span>

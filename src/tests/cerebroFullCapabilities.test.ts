@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { selectAdaptiveModel, AVAILABLE_MODELS } from '../core/inference/modelRegistry.js';
+import { selectAdaptiveModel, assessDeviceCapabilities, AVAILABLE_MODELS } from '../core/inference/modelRegistry.js';
 import { ChunkedDownloader } from '../core/inference/chunkedDownloader.js';
 import { LocalDeterministicEngine } from '../core/inference/localEngine.js';
 import { processShield } from '../core/shield/index.js';
@@ -11,7 +11,7 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
   // =========================================================================
   // 1. OPCIONES DE CEREBRO DISPONIBLES Y SELECTOR ADAPTATIVO DE HARDWARE
   // =========================================================================
-  describe('1. Modelos Disponibles y Selector Adaptativo de Hardware', () => {
+  describe('1. Modelos Disponibles y Selector Adaptativo de Hardware (0.8B, 1.5B, 4B, 8B)', () => {
     it('debe registrar el cerebro ULTRALIGHT (0.8B Q3_K_M) con métricas óptimas para gama baja', () => {
       const model = AVAILABLE_MODELS.ULTRALIGHT;
       expect(model.id).toBe('ULTRALIGHT');
@@ -35,23 +35,81 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
       expect(model.sha256).toBeDefined();
     });
 
-    it('debe asignar automáticamente el cerebro según la memoria RAM del dispositivo', () => {
-      const lowEnd = selectAdaptiveModel({ platform: 'android', estimatedRamMb: 2048, isLowEndDevice: true });
-      expect(lowEnd.id).toBe('ULTRALIGHT');
-
-      const highEnd = selectAdaptiveModel({ platform: 'android', estimatedRamMb: 6144, isLowEndDevice: false });
-      expect(highEnd.id).toBe('STANDARD');
+    it('debe registrar el cerebro ADVANCED_4B (4B Q4_K_M) para gama media-alta con análisis lingüístico profundo', () => {
+      const model = AVAILABLE_MODELS.ADVANCED_4B;
+      expect(model.id).toBe('ADVANCED_4B');
+      expect(model.tamanoParametros).toBe('4B');
+      expect(model.cuantizacion).toBe('Q4_K_M');
+      expect(model.tamanoMb).toBe(2100);
+      expect(model.contextoMaxTokens).toBe(4096);
+      expect(model.ramMinimaRequeridaMb).toBe(6144);
+      expect(model.totalChunks).toBe(42);
+      expect(model.sha256).toBeDefined();
     });
 
-    it('debe permitir cambiar de modelo activo en el motor de inferencia', () => {
-      engine.setActiveModelId('MOCK');
-      expect(engine.getActiveModelId()).toBe('MOCK');
+    it('debe registrar el cerebro MAX_8B (8B Q4_K_M) como el modelo soberano máximo para gama alta / Flagship', () => {
+      const model = AVAILABLE_MODELS.MAX_8B;
+      expect(model.id).toBe('MAX_8B');
+      expect(model.tamanoParametros).toBe('8B');
+      expect(model.cuantizacion).toBe('Q4_K_M');
+      expect(model.tamanoMb).toBe(4200);
+      expect(model.contextoMaxTokens).toBe(8192);
+      expect(model.ramMinimaRequeridaMb).toBe(8192);
+      expect(model.totalChunks).toBe(84);
+      expect(model.esMaximoNivel).toBe(true);
+      expect(model.sha256).toBeDefined();
+    });
+
+    it('debe evaluar capacidades y asignar el modelo óptimo según la RAM del dispositivo (2GB, 4GB, 6GB, 8GB+)', () => {
+      // 1. Móvil de 2GB RAM
+      const entryDevice = assessDeviceCapabilities({ platform: 'android', estimatedRamMb: 2048, isLowEndDevice: true });
+      expect(entryDevice.recommendedModel.id).toBe('ULTRALIGHT');
+      expect(entryDevice.canRun8B).toBe(false);
+      expect(entryDevice.canRun4B).toBe(false);
+      expect(entryDevice.canRunStandard).toBe(false);
+      expect(entryDevice.tierName).toBe('Gama Entrada');
+
+      // 2. Móvil de 4GB RAM
+      const midDevice = assessDeviceCapabilities({ platform: 'android', estimatedRamMb: 4096, isLowEndDevice: false });
+      expect(midDevice.recommendedModel.id).toBe('STANDARD');
+      expect(midDevice.canRun8B).toBe(false);
+      expect(midDevice.canRun4B).toBe(false);
+      expect(midDevice.canRunStandard).toBe(true);
+      expect(midDevice.tierName).toBe('Gama Media');
+
+      // 3. Móvil de 6GB RAM
+      const upperMidDevice = assessDeviceCapabilities({ platform: 'android', estimatedRamMb: 6144, isLowEndDevice: false });
+      expect(upperMidDevice.recommendedModel.id).toBe('ADVANCED_4B');
+      expect(upperMidDevice.canRun8B).toBe(false);
+      expect(upperMidDevice.canRun4B).toBe(true);
+      expect(upperMidDevice.tierName).toBe('Gama Media-Alta');
+
+      // 4. Móvil de 8GB - 12GB RAM (Flagship)
+      const flagshipDevice = assessDeviceCapabilities({ platform: 'android', estimatedRamMb: 8192, isLowEndDevice: false });
+      expect(flagshipDevice.recommendedModel.id).toBe('MAX_8B');
+      expect(flagshipDevice.canRun8B).toBe(true);
+      expect(flagshipDevice.canRun4B).toBe(true);
+      expect(flagshipDevice.tierName).toBe('Gama Alta / Flagship');
+
+      // selectAdaptiveModel helper
+      expect(selectAdaptiveModel({ platform: 'android', estimatedRamMb: 8192, isLowEndDevice: false }).id).toBe('MAX_8B');
+    });
+
+    it('debe permitir cambiar de modelo activo en el motor de inferencia entre todos los perfiles', () => {
+      engine.setActiveModelId('DETERMINISTIC');
+      expect(engine.getActiveModelId()).toBe('DETERMINISTIC');
 
       engine.setActiveModelId('ULTRALIGHT');
       expect(engine.getActiveModelId()).toBe('ULTRALIGHT');
 
       engine.setActiveModelId('STANDARD');
       expect(engine.getActiveModelId()).toBe('STANDARD');
+
+      engine.setActiveModelId('ADVANCED_4B');
+      expect(engine.getActiveModelId()).toBe('ADVANCED_4B');
+
+      engine.setActiveModelId('MAX_8B');
+      expect(engine.getActiveModelId()).toBe('MAX_8B');
     });
   });
 
@@ -407,7 +465,7 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
   // =========================================================================
   describe('7. Integración de Memoria Evolutiva del Usuario', () => {
     it('debe entrelazar el tema previamente estudiado cuando el usuario hace una nueva consulta', async () => {
-      const mockProfile: UserEvolutionProfile = {
+      const evolutionProfile: UserEvolutionProfile = {
         nivel_espiritual: 'Discipulo',
         tono_preferido: 'pastoral_calido',
         temas_estudiados: [
@@ -427,7 +485,7 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
         'Discipulo',
         undefined,
         undefined,
-        mockProfile
+        evolutionProfile
       );
 
       expect(response).toContain('Pacto Abrahámico');

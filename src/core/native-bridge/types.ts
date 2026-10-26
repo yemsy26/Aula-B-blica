@@ -1,9 +1,14 @@
+import { TheologicalRoute, UserTheologicalLevel } from '../shield/types.js';
+
 export interface DeviceSystemInfo {
   platform: 'web' | 'android' | 'tauri' | 'capacitor';
   estimatedRamMb: number;
   isLowEndDevice: boolean; // < 4GB RAM
   batteryLevel?: number;
   isCharging?: boolean;
+  cpuCores?: number;
+  storageFreeMb?: number;
+  storageTotalMb?: number;
 }
 
 export interface LocalInferenceRequest {
@@ -11,9 +16,10 @@ export interface LocalInferenceRequest {
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
-  route: string;
-  level: string;
+  route: TheologicalRoute;
+  level: UserTheologicalLevel;
   stopSequences?: string[];
+  groundTruthContext?: string;
 }
 
 export interface LocalInferenceStreamChunk {

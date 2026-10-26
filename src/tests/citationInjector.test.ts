@@ -63,4 +63,38 @@ describe('Protocolo de Inyección Exacta de Citas - 0% Alucinación Doctrinal', 
     expect(groundTruth).toContain('[CANON_INMUTABLE: Salmos 23:1 (RV1909)]');
     expect(groundTruth).toContain('</SCRIPTURE_GROUND_TRUTH>');
   });
+
+  it('debe resolver la cita mesiánica del Buen Pastor [CITA: Juan 10:11] con 100% de éxito', () => {
+    const raw = 'Cumplimiento en Cristo: [CITA: Juan 10:11]';
+    const { processedText, citations } = injector.injectCitationsInText(raw);
+
+    expect(citations).toHaveLength(1);
+    expect(citations[0].foundInDatabase).toBe(true);
+    expect(citations[0].literalText).toContain('Yo soy el buen pastor: el buen pastor su vida da por las ovejas.');
+    expect(processedText).not.toContain('CITA NO ENCONTRADA');
+    expect(processedText).toContain('Juan 10:11 (RV1909)');
+  });
+
+  it('debe resolver el capítulo completo o rango [CITA: Salmos 23:1-6] e inyectar todos los 6 versículos', () => {
+    const raw = 'El salmo pastoral en su totalidad: [CITA: Salmos 23:1-6]';
+    const { processedText, citations } = injector.injectCitationsInText(raw);
+
+    expect(citations).toHaveLength(1);
+    expect(citations[0].foundInDatabase).toBe(true);
+    expect(citations[0].literalText).toContain('(1) JEHOVA es mi pastor');
+    expect(citations[0].literalText).toContain('(4) Aunque ande en valle de sombra de muerte');
+    expect(citations[0].literalText).toContain('(6) Ciertamente el bien y la misericordia me seguirán');
+    expect(processedText).toContain('Salmos 23:1-6 (RV1909)');
+  });
+
+  it('debe resolver la etiqueta de capítulo entero [CITA: Salmos 23] sin dos puntos', () => {
+    const raw = 'Lee el salmo: [CITA: Salmos 23]';
+    const { processedText, citations } = injector.injectCitationsInText(raw);
+
+    expect(citations).toHaveLength(1);
+    expect(citations[0].foundInDatabase).toBe(true);
+    expect(citations[0].literalText).toContain('(1) JEHOVA es mi pastor');
+    expect(citations[0].literalText).toContain('(6) Ciertamente el bien y la misericordia me seguirán');
+    expect(processedText).toContain('Salmos 23:1-6 (RV1909)');
+  });
 });

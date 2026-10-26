@@ -125,7 +125,7 @@ describe('Motor de Voz Offline (TTS) y Limpiador Fonético', () => {
     expect(verseChunk?.pauseAfterMs).toBeGreaterThanOrEqual(400);
   });
 
-  it('debe listar modelos Piper Neural HD y permitir descarga fraccionada simulada', async () => {
+  it('debe listar modelos Piper Neural HD y permitir descarga fraccionada resiliente', async () => {
     const models = piperNeuralTts.getAvailableModels();
     expect(models.length).toBeGreaterThan(0);
     expect(models[0].sizeMb).toBe(35);

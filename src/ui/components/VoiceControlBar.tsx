@@ -93,7 +93,7 @@ export const VoiceControlBar: React.FC = () => {
 
   return (
     <>
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-2xl bg-nocturne-900/95 border border-sacred-gold/40 rounded-2xl shadow-2xl backdrop-blur-md text-zinc-200 p-2.5 sm:p-3.5 transition-all animate-in slide-in-from-bottom-3 duration-200">
+      <div className="fixed bottom-36 sm:bottom-24 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-2xl bg-nocturne-900/95 border border-sacred-gold/40 rounded-2xl shadow-2xl backdrop-blur-md text-zinc-200 p-2.5 sm:p-3.5 transition-all animate-in slide-in-from-bottom-3 duration-200">
         <div className="flex flex-col gap-2">
           {/* Fila Superior: Estado del Segmento y Onda Visual */}
           <div className="flex items-center justify-between gap-2 border-b border-nocturne-800 pb-2">

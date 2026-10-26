@@ -1,7 +1,7 @@
 import { UserTheologicalLevel, TheologicalRoute, MinistryFormat } from '../shield/types.js';
 import { UserEvolutionProfile } from '../database/usuarioMemoriaService.js';
 
-export type ModelProfileId = 'ULTRALIGHT' | 'STANDARD';
+export type ModelProfileId = 'ULTRALIGHT' | 'STANDARD' | 'ADVANCED_4B' | 'MAX_8B';
 
 export interface ModelManifest {
   id: ModelProfileId;
@@ -9,13 +9,16 @@ export interface ModelManifest {
   descripcion: string;
   tamanoMb: number;
   cuantizacion: string; // ej: Q3_K_M, Q4_K_M
-  tamanoParametros: string; // ej: 0.8B, 1.5B
+  tamanoParametros: string; // ej: 0.8B, 1.5B, 4B, 8B
   contextoMaxTokens: number;
   ramMinimaRequeridaMb: number;
   totalChunks: number;
   tamanoChunkMb: number;
   sha256: string;
   archivoDestino: string;
+  url?: string;
+  gamaRecomendada?: string;
+  esMaximoNivel?: boolean;
 }
 
 export type DownloadStatus =
@@ -48,7 +51,7 @@ export interface PersonalityConfig {
 
 export interface InferenceEngine {
   isModelReady(): boolean;
-  getActiveModelId(): ModelProfileId | 'MOCK';
+  getActiveModelId(): ModelProfileId | 'DETERMINISTIC';
   generate(
     prompt: string,
     route: TheologicalRoute,

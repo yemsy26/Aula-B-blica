@@ -3,6 +3,7 @@ import { selectAdaptiveModel, AVAILABLE_MODELS } from '../core/inference/modelRe
 import { getPersonalityConfig } from '../core/inference/systemPrompts.js';
 import { ChunkedDownloader } from '../core/inference/chunkedDownloader.js';
 import { LocalDeterministicEngine } from '../core/inference/localEngine.js';
+import { extractBiblicalReference } from '../core/inference/passageExegesisService.js';
 
 describe('Inferencia Edge - Selector Adaptativo de Hardware', () => {
   it('debe asignar perfil ULTRALIGHT (0.8B) en dispositivos con RAM <= 3GB', () => {
@@ -17,16 +18,34 @@ describe('Inferencia Edge - Selector Adaptativo de Hardware', () => {
     expect(model.tamanoMb).toBeLessThanOrEqual(450);
   });
 
-  it('debe asignar perfil STANDARD (1.5B) en dispositivos con RAM >= 4GB', () => {
+  it('debe asignar perfil STANDARD (1.5B) en dispositivos con RAM de 4GB', () => {
     const model = selectAdaptiveModel({
       platform: 'android',
-      estimatedRamMb: 6144,
+      estimatedRamMb: 4096,
       isLowEndDevice: false,
     });
 
     expect(model.id).toBe('STANDARD');
     expect(model.cuantizacion).toBe('Q4_K_M');
     expect(model.contextoMaxTokens).toBe(2048);
+  });
+
+  it('debe asignar perfil ADVANCED_4B (4B) en móviles de 6GB y MAX_8B (8B) en 8GB+ Flagship', () => {
+    const model4b = selectAdaptiveModel({
+      platform: 'android',
+      estimatedRamMb: 6144,
+      isLowEndDevice: false,
+    });
+    expect(model4b.id).toBe('ADVANCED_4B');
+    expect(model4b.tamanoParametros).toBe('4B');
+
+    const model8b = selectAdaptiveModel({
+      platform: 'android',
+      estimatedRamMb: 8192,
+      isLowEndDevice: false,
+    });
+    expect(model8b.id).toBe('MAX_8B');
+    expect(model8b.tamanoParametros).toBe('8B');
   });
 });
 
@@ -150,7 +169,7 @@ describe('Inferencia Edge - Motor Determinista Local', () => {
 
   it('debe gestionar la activación del modelo activo sin interferir en el ciclo de vida', () => {
     const engine = new LocalDeterministicEngine();
-    expect(engine.getActiveModelId()).toBe('MOCK');
+    expect(engine.getActiveModelId()).toBe('DETERMINISTIC');
     engine.setActiveModelId('ULTRALIGHT');
     expect(engine.getActiveModelId()).toBe('ULTRALIGHT');
     engine.setActiveModelId('STANDARD');
@@ -268,6 +287,143 @@ describe('Inferencia Edge - Motor Determinista Local', () => {
       expect(response).toContain('ORDEN LITÚRGICO MINUTO A MINUTO');
       expect(response).toContain('HOMILÍA PASTORAL');
       expect(response).toContain('ORACIÓN SACERDOTAL DE BENDICIÓN FINAL');
+    });
+  });
+
+  describe('Exégesis de Pasajes Específicos y Guía Pedagógica de Libros (Anti-Alucinaciones)', () => {
+    it('debe extraer con precisión referencias bíblicas completas (libro, capítulo, versículo)', () => {
+      const ref1 = extractBiblicalReference('dame un estudio detallado del salmo 23:1');
+      expect(ref1).not.toBeNull();
+      expect(ref1?.bookName).toBe('Salmos');
+      expect(ref1?.chapter).toBe(23);
+      expect(ref1?.verseStart).toBe(1);
+      expect(ref1?.isVerseSpecific).toBe(true);
+
+      const ref2 = extractBiblicalReference('explica Juan 3:16');
+      expect(ref2).not.toBeNull();
+      expect(ref2?.bookName).toBe('Juan');
+      expect(ref2?.chapter).toBe(3);
+      expect(ref2?.verseStart).toBe(16);
+
+      const ref3 = extractBiblicalReference('estudio de Romanos 8:28');
+      expect(ref3).not.toBeNull();
+      expect(ref3?.bookName).toBe('Romanos');
+      expect(ref3?.chapter).toBe(8);
+      expect(ref3?.verseStart).toBe(28);
+
+      const refChapter = extractBiblicalReference('quiero estudiar el salmo 23');
+      expect(refChapter).not.toBeNull();
+      expect(refChapter?.bookName).toBe('Salmos');
+      expect(refChapter?.chapter).toBe(23);
+      expect(refChapter?.isVerseSpecific).toBe(false);
+      expect(refChapter?.isChapterSpecific).toBe(true);
+    });
+
+    it('debe generar exégesis profunda y directa para "salmo 23:1" en lugar de un bosquejo genérico de todo el libro de Salmos', async () => {
+      const engine = new LocalDeterministicEngine();
+      const response = await engine.generate(
+        'dame un estudio detallado del salmo 23:1',
+        '[CREADOR_ESTUDIO]',
+        'Discipulo'
+      );
+
+      // NO debe ser el bosquejo genérico de los 150 salmos
+      expect(response).not.toContain('Bosquejo Homilético y Teológico: Salmos');
+      expect(response).not.toContain('Libro I (1-41)');
+      expect(response).not.toContain('Libro II (42-72)');
+
+      // Debe ser el estudio exegético específico de Salmos 23:1
+      expect(response).toContain('Estudio Exegético y Teológico Detallado: Salmos 23:1');
+      expect(response).toContain('[CITA: Salmos 23:1]');
+      expect(response).toContain('David (Salmo de David');
+
+      // Debe incluir raíces hebreas y definiciones para prevenir alucinaciones/malinterpretaciones
+      expect(response).toContain('Yahweh');
+      expect(response).toContain('Ro’í');
+      expect(response).toContain('Lo’ ’eḥsār');
+      expect(response).toContain('teología de la prosperidad');
+
+      // Debe incluir conexión cristológica y pregunta ping-pong
+      expect(response).toContain('Juan 10:11');
+      expect(response).toContain('Al meditar hoy en que el Señor es tu Pastor personal');
+    });
+
+    it('debe generar estudio integral completo de todo el Salmo 23 (vv. 1-6) cuando se pide "quiero un detalle del salmo 23"', async () => {
+      const engine = new LocalDeterministicEngine();
+      const response = await engine.generate(
+        'quiero un detalle del salmo 23',
+        '[CREADOR_ESTUDIO]',
+        'Discipulo'
+      );
+
+      // NO debe reducirse solo a ":1"
+      expect(response).not.toBe('### Estudio Exegético y Teológico Detallado: Salmos 23:1');
+      expect(response).toContain('Estudio Exegético y Teológico Integral: Salmo 23 (Completo, vv. 1-6)');
+      expect(response).toContain('[CITA: Salmos 23:1-6]');
+
+      // Debe estructurarse en los 3 movimientos del salmo
+      expect(response).toContain('Movimiento I (vv. 1-3)');
+      expect(response).toContain('Movimiento II (v. 4)');
+      expect(response).toContain('Movimiento III (vv. 5-6)');
+
+      // Debe incluir las raíces hebreas de todo el salmo
+      expect(response).toContain('Yahweh Ro’í');
+      expect(response).toContain('Tsalmáwet');
+      expect(response).toContain('Shibteḵā ūmish‘anteḵā');
+      expect(response).toContain('Shulḥān');
+      expect(response).toContain('Chésed');
+
+      // Debe desmontar interpretaciones erróneas y supersticiones
+      expect(response).toContain('teología de la prosperidad');
+      expect(response).toContain('talismán');
+
+      // Debe incluir cumplimiento cristológico múltiple y pregunta ping-pong
+      expect(response).toContain('Juan 10:11');
+      expect(response).toContain('Juan 10:27');
+      expect(response).toContain('Buen Pastor');
+    });
+
+    it('debe inyectar todos los 6 versículos literales sin omisiones en el estudio integral del Salmo 23', async () => {
+      const { SqlJsDatabaseAdapter } = await import('../core/database/adapters/sqlJsAdapter.js');
+      const { BibliaCoreService } = await import('../core/database/bibliaCoreService.js');
+      const { CitationInjector } = await import('../core/database/citationInjector.js');
+
+      const adapter = await SqlJsDatabaseAdapter.create();
+      const bibliaService = new BibliaCoreService(adapter);
+      await bibliaService.initializeSchemaAndSeeds();
+      const injector = new CitationInjector(bibliaService);
+
+      const engine = new LocalDeterministicEngine();
+      const raw = await engine.generate('quiero un detalle del salmo 23', '[CREADOR_ESTUDIO]', 'Discipulo');
+      const { processedText } = injector.injectCitationsInText(raw);
+
+      expect(processedText).toContain('(1) JEHOVA es mi pastor; nada me faltará');
+      expect(processedText).toContain('(2) En lugares de delicados pastos me hará yacer');
+      expect(processedText).toContain('(3) Confortará mi alma');
+      expect(processedText).toContain('(4) Aunque ande en valle de sombra de muerte');
+      expect(processedText).toContain('(5) Aderezarás mesa delante de mí');
+      expect(processedText).toContain('(6) Ciertamente el bien y la misericordia');
+      expect(processedText).toContain('Salmos 23:1-6 (RV1909)');
+      expect(processedText).toContain('Juan 10:11 (RV1909)');
+      expect(processedText).not.toContain('CITA NO ENCONTRADA');
+    });
+
+    it('debe generar una guía pedagógica integral cuando el usuario pide estudiar un libro completo', async () => {
+      const engine = new LocalDeterministicEngine();
+      const response = await engine.generate(
+        'guia de estudio para aprender el libro de Romanos',
+        '[CREADOR_ESTUDIO]',
+        'Discipulo'
+      );
+
+      expect(response).toContain('Guía Pedagógica y Acompañamiento: Libro de Romanos');
+      expect(response).toContain('Léxico y Definiciones Doctrinales Fundamentales del Libro');
+      expect(response).toContain('Justificación (Dikaiosyne');
+      expect(response).toContain('Gracia (Charis');
+      expect(response).toContain('Santificación (Hagiasmos');
+      expect(response).toContain('Hoja de Ruta de Aprendizaje (Etapas de Estudio Guiado)');
+      expect(response).toContain('[CITA: Romanos');
+      expect(response).toContain('Acompañamiento Paso a Paso (Regla del Ping-Pong)');
     });
   });
 });

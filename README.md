@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg)](LICENSE)
 [![Engine: Node.js >=18](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-emerald.svg)](https://nodejs.org/)
 [![Database: SQLite WASM](https://img.shields.io/badge/Database-SQLite%20(WASM)-blue.svg)](https://sql.js.org/)
-[![Tests: 91 Passing](https://img.shields.io/badge/Tests-91%2F91%20Passed-brightgreen.svg)]()
+[![Tests: 129 Passing](https://img.shields.io/badge/Tests-129%2F129%20Passed-brightgreen.svg)]()
 [![Platform: PWA / Web / Android](https://img.shields.io/badge/Platform-PWA%20%7C%20Android%20(Capacitor)-indigo.svg)]()
 
 ---
@@ -47,26 +47,42 @@ A diferencia de las herramientas convencionales basadas en APIs externas o servi
      6. `DOCTRINA_SISTEMATICA` (Fundamentos dogmáticos, errores comunes y refutaciones bíblicas).
      7. `BODA_FUNERAL` (Ceremonias ministeriales con protocolo pastoral solemne).
 
-4. **Motor de Casuística Universal y Espejos Bíblicos:**
+4. **Exégesis Específica por Libro, Capítulo y Versículo (Cero Respuestas Genéricas):**
+   - Al solicitar el estudio de un pasaje puntual (ej. `Salmo 23:1`, `Romanos 8`, `Juan 3:16`), el sistema genera un informe exegético exhaustivo y directo, sin desviar a resúmenes globales:
+     - **Marco Histórico y Contexto Canónico Inmediato:** Autor, fecha, propósito y ubicación precisa en la perícopa.
+     - **Léxico Original con Códigos Strong:** Raíces hebreas y griegas con transcripción fonética, significado literal, definición teológica y aclaraciones hermenéuticas indispensables para blindar el texto contra malas interpretaciones o doctrinas inventadas.
+     - **Estructura Literaria y Desarrollo del Pasaje:** Desglose analítico versículo a versículo o sección a sección.
+     - **Teología Bíblica y Conexión Cristocéntrica:** Cómo el pasaje apunta a la revelación del Salvador y la redención del pacto.
+     - **Aplicación Pastoral Contemporánea:** Principios vivenciales y preguntas reflexivas guiadas bajo la regla del ping-pong pastoral.
+   - Guía de estudio integral por libro cuando se consulta un libro completo (ej. «quiero estudiar Salmos» o «guía de Romanos»), estructurada por secciones canónicas, temas teológicos y advertencias exegéticas.
+
+5. **Catálogo de Cerebros IA Locales y Diagnóstico de Hardware (4 Niveles):**
+   - Evaluación diagnóstica en tiempo real del hardware (`navigator.storage.estimate`, `navigator.hardwareConcurrency`, memoria estimada) para recomendar el modelo ideal y detectar el nivel máximo soportado:
+     - `ULTRALIGHT (0.8B Q3_K_M · 400 MB)`: Gama Entrada (mínimo 2 GB RAM).
+     - `STANDARD (1.5B Q4_K_M · 750 MB)`: Gama Media (mínimo 4 GB RAM).
+     - `ADVANCED_4B (4B Q4_K_M · 2.1 GB)`: Gama Media-Alta (mínimo 6 GB RAM).
+     - `MAX_8B (8B Q4_K_M · 4.2 GB)`: Gama Alta / Flagship (mínimo 8 GB RAM).
+   - Descargador fraccionado en bloques de 50 MB con pausa/reanudación, guardado en almacenamiento local privado (IndexedDB / FS nativo) y verificación de integridad SHA-256.
+
+6. **Motor de Casuística Universal y Espejos Bíblicos:**
    - Mapeo semántico de desafíos contemporáneos (deudas, desempleo, fatiga, duelo, liderazgo en crisis) hacia arquetipos históricos y principios de las Escrituras.
 
-5. **Herramientas de Investigación y Estudio Integradas:**
+7. **Herramientas de Investigación y Estudio Integradas:**
    - **Concordancia Léxica Strong:** Búsqueda y análisis de términos originales en Hebreo, Arameo y Griego Koiné (ej. *bará* H1254, *agapē* G26, *lógos* G3056).
    - **Referencias Cruzadas (Treasury of Scripture Knowledge - TSK):** Mapeo temático entre pasajes del Antiguo y Nuevo Testamento.
    - **Pizarra de Estudio:** Bloc de notas persistente con exportación directa a texto enriquecido para WhatsApp, Markdown para publicación e impresión en formato PDF.
 
-6. **Síntesis de Voz Offline (TTS) con Prosodia Adaptativa:**
-   - Detección y priorización automática de voces Neurales HD del sistema operativo.
-   - Módulo `ProsodyChunker` que segmenta lecturas y aplica modulaciones específicas para títulos, narrativas y citas solemnes.
-   - Conector experimental para modelos neuronales ultraligeros basados en ONNX/WASM.
+8. **Síntesis de Voz Offline (TTS) con Prosodia Adaptativa y Voces Naturales:**
+   - Detección y priorización automática de voces Naturales Neural HD tanto en navegador como en Android (Edge Natural, Google Natural Speech, Piper Neural HD).
+   - Módulo `ProsodyChunker` que segmenta lecturas y aplica modulaciones específicas para títulos, narrativas y citas solemnes con pausas reverentes.
 
-7. **Biblioteca de Módulos Bíblicos en 1 Clic (BYOB):**
+9. **Biblioteca de Módulos Bíblicos en 1 Clic (BYOB):**
    - Descarga e indexación directa de versiones de Dominio Público y licencias abiertas (RV1909, Versión Biblia Libre CC BY-SA 4.0, BES, Biblia del Oso 1569).
    - Soporte para importación de traducciones en formatos estándar JSON y CSV.
 
-8. **Memoria Local Evolutiva y Respaldo Firmado:**
-   - Registro local del progreso teológico del usuario comprimido a menos de 300 palabras para optimizar el contexto.
-   - Generación de respaldos completos en formato JSON con firma de integridad SHA-256 para migración entre dispositivos.
+10. **Memoria Local Evolutiva y Respaldo Firmado:**
+    - Registro local del progreso teológico del usuario comprimido a menos de 300 palabras para optimizar el contexto.
+    - Generación de respaldos completos en formato JSON con firma de integridad SHA-256 para migración entre dispositivos.
 
 ---
 
@@ -113,7 +129,7 @@ Abre tu navegador en `http://localhost:5173` para comenzar a utilizar la aplicac
 | Comando | Acción |
 | :--- | :--- |
 | `npm run dev` | Inicia el entorno de desarrollo local con recarga en caliente (Vite HMR). |
-| `npm test` | Ejecuta la suite completa de 91 pruebas unitarias con Vitest. |
+| `npm test` | Ejecuta la suite completa de 129 pruebas unitarias con Vitest. |
 | `npm run build` | Compila TypeScript y empaqueta la aplicación web para producción en `dist/`. |
 | `npm run preview` | Previsualiza localmente el paquete de producción generado. |
 
@@ -167,7 +183,7 @@ verbovivo/
 │   │   ├── shield/         # Escudo limpiador, normalizador dialectal y detector de crisis
 │   │   ├── tts/            # Motor de síntesis de voz offline, prosodia y ranking neural
 │   │   └── utils/          # Utilidades seguras de portapapeles y formato
-│   ├── tests/              # 91 pruebas unitarias automatizadas con Vitest
+│   ├── tests/              # 129 pruebas unitarias automatizadas con Vitest
 │   └── ui/                 # Componentes React 19, vistas responsive y estilos Tailwind
 ├── capacitor.config.ts     # Configuración para Android / Capacitor
 ├── CONTRIBUTING.md         # Normas de contribución para la comunidad

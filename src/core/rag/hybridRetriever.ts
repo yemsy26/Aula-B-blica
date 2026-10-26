@@ -3,6 +3,7 @@ import { VerseSeed, StrongSeed } from '../database/seedData.js';
 import { UserTheologicalLevel } from '../shield/types.js';
 import { SemanticRewriteResult, ScoredVerse } from './types.js';
 import { THEOLOGICAL_THEMES } from './queryRewriter.js';
+import { extractBiblicalReference } from '../inference/passageExegesisService.js';
 
 export class HybridRetriever {
   private bibliaService: BibliaCoreService;
@@ -23,6 +24,53 @@ export class HybridRetriever {
 
     // Helper para clave de mapa
     const getVerseKey = (v: VerseSeed) => `${v.libro_nombre}_${v.capitulo}_${v.versiculo}`;
+
+    // 0. Detección directa de pasajes o versículos específicos (ej: Salmos 23:1, Juan 3:16)
+    const exactRef =
+      extractBiblicalReference(rewrite.queryOriginal) ||
+      extractBiblicalReference(rewrite.queryNormalizada);
+    if (exactRef && exactRef.verseStart) {
+      if (exactRef.verseEnd && exactRef.verseEnd > exactRef.verseStart) {
+        const rangeVerses = this.bibliaService.getVerseRange(
+          exactRef.bookName,
+          exactRef.chapter,
+          exactRef.verseStart,
+          exactRef.verseEnd
+        );
+        for (const v of rangeVerses) {
+          const key = getVerseKey(v);
+          const existing = candidateMap.get(key) || { verse: v, lexical: 0, semantic: 0 };
+          existing.lexical += 150;
+          existing.semantic += 150;
+          candidateMap.set(key, existing);
+        }
+      } else {
+        const directVerse = this.bibliaService.getVerse(
+          exactRef.bookName,
+          exactRef.chapter,
+          exactRef.verseStart
+        );
+        if (directVerse) {
+          const key = getVerseKey(directVerse);
+          const existing = candidateMap.get(key) || { verse: directVerse, lexical: 0, semantic: 0 };
+          existing.lexical += 200;
+          existing.semantic += 200;
+          candidateMap.set(key, existing);
+        }
+      }
+    } else if (exactRef && !exactRef.verseStart) {
+      // Capítulo completo mencionado (ej: Salmo 23, Romanos 8)
+      const chapterVerses = this.bibliaService
+        .getVersesByBook(exactRef.bookName, 12)
+        .filter((v) => v.capitulo === exactRef.chapter);
+      for (const v of chapterVerses) {
+        const key = getVerseKey(v);
+        const existing = candidateMap.get(key) || { verse: v, lexical: 0, semantic: 0 };
+        existing.lexical += 120;
+        existing.semantic += 120;
+        candidateMap.set(key, existing);
+      }
+    }
 
     // 1. Recuperación léxica vía FTS / Concordancia en SQLite
     for (const term of rewrite.terminosBusqueda) {

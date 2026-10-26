@@ -1,4 +1,5 @@
 import { DeviceSystemInfo, LocalInferenceRequest, LocalInferenceStreamChunk, NativeBridge } from './types.js';
+import { DynamicTheologicalComposer } from '../inference/localEngine.js';
 
 /**
  * Motor de puente nativo híbrido
@@ -33,12 +34,36 @@ class HybridNativeBridge implements NativeBridge {
       }
     }
 
+    const cpuCores =
+      typeof navigator !== 'undefined' && 'hardwareConcurrency' in navigator
+        ? navigator.hardwareConcurrency
+        : 4;
+
+    let storageFreeMb: number | undefined;
+    let storageTotalMb: number | undefined;
+    if (typeof navigator !== 'undefined' && navigator.storage && typeof navigator.storage.estimate === 'function') {
+      try {
+        const estimate = await navigator.storage.estimate();
+        if (estimate.quota !== undefined && estimate.usage !== undefined) {
+          const quotaMb = Math.round(estimate.quota / (1024 * 1024));
+          const usageMb = Math.round(estimate.usage / (1024 * 1024));
+          storageTotalMb = quotaMb;
+          storageFreeMb = Math.max(0, quotaMb - usageMb);
+        }
+      } catch {
+        // Storage API no disponible o denegada
+      }
+    }
+
     return {
       platform: isTauri ? 'tauri' : isCapacitor ? 'android' : 'web',
       estimatedRamMb,
       isLowEndDevice,
       batteryLevel,
       isCharging,
+      cpuCores,
+      storageFreeMb,
+      storageTotalMb,
     };
   }
 
@@ -139,19 +164,26 @@ class HybridNativeBridge implements NativeBridge {
       // Preparado para el comando de Rust
     }
 
-    // Motor de respuesta Edge determinista para desarrollo y validación
-    let simulatedResponse = '';
-
-    if (request.route === '[BUSQUEDA_EXACTA]') {
-      simulatedResponse = `He verificado el canon bíblico en la base de datos local inmutable.\n\n[CITA: Juan 3:16]\n\nEsta declaración resume el núcleo del Evangelio de la Gracia.`;
-    } else if (request.route === '[CREADOR_ESTUDIO]') {
-      simulatedResponse = `### Bosquejo Homilético y Exegético\n\n**Tema Principal:** La Gracia Soberana y la Vida Eterna\n**Nivel:** ${request.level}\n\n1. **El Origen del Amor Divino**\n   - Contexto del pacto y revelación.\n   - [CITA: Juan 3:16]\n\n2. **La Seguridad de la Salvación por la Fe**\n   - [CITA: Efesios 2:8-9]\n\n3. **Aplicación Pastoral Práctica**\n   - Vivir en reposo y confianza plena en Cristo.`;
-    } else {
-      simulatedResponse = `Gracia y paz sean contigo. En los momentos de incertidumbre y búsqueda sincera, las Escrituras nos recuerdan:\n\n[CITA: Salmos 23:1-3]\n\nPuedes descansar sabiendo que el Buen Pastor guía tus pasos con fidelidad eterna. ¿En qué aspecto de esta enseñanza deseas profundizar hoy?`;
+    // Extracción de citas del contexto canónico verificado
+    const citations: string[] = [];
+    if (request.groundTruthContext) {
+      const matches = request.groundTruthContext.matchAll(/\[CANON_INMUTABLE:\s*([^(\]]+?)(?:\s*\([^)]*\))?\]:/g);
+      for (const m of matches) {
+        if (m[1]) citations.push(m[1].trim());
+      }
     }
 
-    // Emular streaming de tokens con micro-demoras para verificar UI a 60 FPS
-    const tokens = simulatedResponse.split(/(\s+)/);
+    // Motor de respuesta teológica determinista y canónica de alta fidelidad
+    const realResponse = DynamicTheologicalComposer.compose(
+      request.prompt,
+      request.route,
+      request.level,
+      citations,
+      request.groundTruthContext
+    );
+
+    // Streaming de tokens nativo de alta precisión
+    const tokens = realResponse.split(/(\s+)/);
     let fullText = '';
 
     for (let i = 0; i < tokens.length; i++) {
@@ -164,9 +196,8 @@ class HybridNativeBridge implements NativeBridge {
           tokensPerSecond: 45,
         });
       }
-      // Pequeño retardo asíncrono para streaming suave si hay suscriptor
-      if (onToken && i % 3 === 0) {
-        await new Promise((r) => setTimeout(r, 12));
+      if (onToken && i % 4 === 0) {
+        await new Promise((r) => setTimeout(r, 6));
       }
     }
 
