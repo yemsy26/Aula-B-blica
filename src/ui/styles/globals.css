@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-primary: #fbfaf6;
+    --bg-secondary: #f4efe4;
+    --bg-card: #ffffff;
+    --border-color: #e5dcce;
+    --text-primary: #1e2022;
+    --text-secondary: #575a61;
+    --accent-gold: #b38938;
+  }
+
+  .dark {
+    --bg-primary: #090b0d;
+    --bg-secondary: #12161b;
+    --bg-card: #181d24;
+    --border-color: #262f3a;
+    --text-primary: #f5f3ec;
+    --text-secondary: #9aa1ad;
+    --accent-gold: #cba358;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Micro-animaciones aceleradas por hardware a 60 FPS */
+.smooth-gpu {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Scrollbar editorial ultra-delgada */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.2);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.4);
+}
+
+/* Tipografía de lectura bíblica */
+.font-bible {
+  font-family: Georgia, Cambria, 'Times New Roman', serif;
+  line-height: 1.75;
+}
+
+/* Resaltado de versículos canónicos */
+.verse-quote-card {
+  border-left: 3px solid var(--accent-gold);
+  background: linear-gradient(90deg, rgba(203, 163, 88, 0.08) 0%, transparent 100%);
+}
+
+/* Estilos de Impresión Editorial de Alta Fidelidad (@media print) */
+@media print {
+  /* Ocultar elementos de navegación y UI de la app */
+  aside,
+  header,
+  footer,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  html, body, #root, main {
+    background: #ffffff !important;
+    color: #111111 !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: 100% !important;
+  }
+
+  .verse-quote-card {
+    border-left: 3px solid #222222 !important;
+    background: #f8f8f8 !important;
+    color: #111111 !important;
+    page-break-inside: avoid;
+  }
+
+  h1, h2, h3, h4 {
+    color: #000000 !important;
+    page-break-after: avoid;
+  }
+
+  p, li, blockquote {
+    color: #222222 !important;
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+  }
+}

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#14191f"/>
+      <stop offset="100%" stop-color="#090b0d"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5e6a8"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#997a15"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Fondo circular con borde nocturno -->
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  <rect width="504" height="504" x="4" y="4" rx="96" fill="none" stroke="url(#gold)" stroke-width="4" opacity="0.6"/>
+
+  <!-- Resplandor central -->
+  <circle cx="256" cy="240" r="140" fill="#d4af37" opacity="0.08" filter="url(#glow)"/>
+
+  <!-- Libro Sagrado Abierto -->
+  <g transform="translate(0, 20)">
+    <!-- Páginas base -->
+    <path d="M256 360 C210 320 140 310 80 320 L80 180 C140 170 210 180 256 220 C302 180 372 170 432 180 L432 320 C372 310 302 320 256 360 Z" fill="#1b222a" stroke="url(#gold)" stroke-width="6"/>
+    
+    <!-- Páginas interiores doradas -->
+    <path d="M256 345 C215 310 150 302 96 310 L96 195 C150 188 215 195 256 230 C297 195 362 188 416 195 L416 310 C362 302 297 310 256 345 Z" fill="#242d38" opacity="0.7"/>
+
+    <!-- Lomo central -->
+    <line x1="256" y1="220" x2="256" y2="360" stroke="url(#gold)" stroke-width="4"/>
+
+    <!-- Cruz Homilética Resplandeciente -->
+    <g filter="url(#glow)">
+      <!-- Brazo vertical de la cruz -->
+      <path d="M251 100 L261 100 L261 270 L251 270 Z" fill="url(#gold)"/>
+      <!-- Brazo horizontal de la cruz -->
+      <path d="M220 140 L292 140 L292 150 L220 150 Z" fill="url(#gold)"/>
+      <!-- Fuego / Llama del Espíritu en el ápice -->
+      <path d="M256 70 C246 85 240 95 256 110 C272 95 266 85 256 70 Z" fill="#ffdf7a"/>
+    </g>
+
+    <!-- Rayos de luz / Sabiduría -->
+    <line x1="256" y1="60" x2="256" y2="40" stroke="url(#gold)" stroke-width="3" opacity="0.6"/>
+    <line x1="230" y1="75" x2="215" y2="60" stroke="url(#gold)" stroke-width="3" opacity="0.6"/>
+    <line x1="282" y1="75" x2="297" y2="60" stroke="url(#gold)" stroke-width="3" opacity="0.6"/>
+  </g>
+
+  <!-- Lema inferior -->
+  <text x="256" y="445" font-family="system-ui, sans-serif" font-size="32" font-weight="bold" fill="url(#gold)" text-anchor="middle" letter-spacing="4">VERBOVIVO</text>
+  <text x="256" y="475" font-family="monospace" font-size="14" fill="#a1a1aa" text-anchor="middle" letter-spacing="2">100% OFFLINE</text>
+</svg>
