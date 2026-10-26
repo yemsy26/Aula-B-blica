@@ -11,13 +11,13 @@ import {
   CheckCircle,
   ShieldCheck,
   Sparkles,
-  Cpu,
   Volume2,
   Square,
-  FileUp,
   Menu,
   Sun,
   HelpCircle,
+  Settings,
+  BookOpen,
 } from 'lucide-react';
 import { offlineTts } from '../../core/tts/offlineTtsService.js';
 import { DailyBreadCardData } from '../../core/retention/types.js';
@@ -43,6 +43,7 @@ interface ChatViewProps {
   onStartStudyFromVerse?: (ref: string, verseText: string) => void;
   onToggleMobileSidebar?: () => void;
   onOpenWelcomeGuide?: () => void;
+  onOpenSettings?: () => void;
 }
 
 const FORMAT_PILLS: { id: MinistryFormat; label: string }[] = [
@@ -156,15 +157,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
   isGenerating,
   streamingText = '',
   ragVersesCount = 0,
-  onOpenModelManager,
   activeBibleVersion = 'RV1909',
-  availableVersions = ['RV1909'],
-  onSelectBibleVersion,
-  onOpenBibleImporter,
   dailyBreadData,
   onStartStudyFromVerse,
   onToggleMobileSidebar,
   onOpenWelcomeGuide,
+  onOpenSettings,
 }) => {
   const [inputText, setInputText] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -222,10 +220,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
   };
 
   return (
-    <div className="flex-1 h-full flex flex-col bg-nocturne-950 overflow-hidden text-zinc-200">
-      {/* Barra Superior del Chat (Responsive) */}
-      <header className="px-3 sm:px-6 py-2 sm:py-3 border-b border-nocturne-800 bg-nocturne-900/70 backdrop-blur-md flex items-center justify-between z-10 gap-2 shrink-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+    <div className="flex-1 h-full flex flex-col bg-nocturne-950 overflow-hidden text-zinc-200 relative">
+      {/* Barra Superior del Chat (Moderna y Despejada) */}
+      <header className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-nocturne-800 bg-nocturne-900/80 backdrop-blur-xl flex items-center justify-between z-10 gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {/* Botón de Menú Móvil Prominente para abrir historial */}
           {onToggleMobileSidebar && (
             <button
@@ -243,38 +241,25 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <h2 className="text-xs sm:text-sm font-serif font-bold text-parchment-100 flex items-center gap-1.5 truncate">
               <span className="truncate">{chat ? chat.titulo : 'Nueva Consulta'}</span>
               {chat && (
-                <span className="hidden sm:inline-block text-[9px] px-1.5 py-0.2 rounded-full bg-nocturne-800 text-sacred-gold font-mono border border-nocturne-700 shrink-0">
+                <span className="hidden sm:inline-block text-[9px] px-2 py-0.5 rounded-full bg-nocturne-800 text-sacred-gold font-mono border border-nocturne-700 shrink-0">
                   {chat.ruta_predominante.replace(/[[\]]/g, '')}
                 </span>
               )}
             </h2>
             <p className="hidden md:block text-[11px] text-zinc-400 mt-0.5">
-              Canon RV1909 · Exégesis Edge Inmutable · 100% Offline
+              Canon {activeBibleVersion || 'RV1909'} · Exégesis Edge Inmutable · 100% Offline
             </p>
           </div>
         </div>
 
-        {/* Acciones de Cabecera: Guía, Pan Diario, Canon, Nivel y Cerebro */}
-        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          {/* Botón Guía de Bienvenida / Ayuda (visible en sm+) */}
-          {onOpenWelcomeGuide && (
-            <button
-              type="button"
-              onClick={onOpenWelcomeGuide}
-              className="hidden sm:flex p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-nocturne-900 hover:bg-nocturne-850 border border-nocturne-800 hover:border-sacred-gold/40 text-zinc-300 hover:text-sacred-gold text-xs items-center gap-1 transition-colors"
-              title="Guía de uso para nuevos usuarios"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-sacred-gold shrink-0" />
-              <span className="text-[11px] font-medium">Guía</span>
-            </button>
-          )}
-
+        {/* Acciones de Cabecera: Pan Diario, Nivel Teológico y Ajustes */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Alternador de Pan Diario */}
           {dailyBreadData && (
             <button
               type="button"
               onClick={() => setShowDailyBread((prev) => !prev)}
-              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs flex items-center gap-1 border transition-all ${
+              className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl text-xs flex items-center gap-1 border transition-all cursor-pointer ${
                 showDailyBread
                   ? 'bg-sacred-gold/20 border-sacred-gold/50 text-sacred-gold-light'
                   : 'bg-nocturne-900 border-nocturne-800 text-zinc-400 hover:text-zinc-200'
@@ -286,43 +271,19 @@ export const ChatView: React.FC<ChatViewProps> = ({
             </button>
           )}
 
-          {/* Selector de Versión Canónica */}
-          <div className="flex items-center gap-1 bg-nocturne-950 border border-nocturne-800 rounded-xl px-1.5 sm:px-2 py-1">
-            <span className="text-[10px] font-mono text-zinc-400 hidden sm:inline">Canon:</span>
-            <select
-              value={activeBibleVersion}
-              onChange={(e) => onSelectBibleVersion && onSelectBibleVersion(e.target.value)}
-              className="bg-transparent text-[11px] sm:text-xs font-mono font-bold text-sacred-gold focus:outline-none cursor-pointer"
-            >
-              {availableVersions.map((v) => (
-                <option key={v} value={v} className="bg-nocturne-900 text-zinc-200">
-                  {v}
-                </option>
-              ))}
-            </select>
-            {onOpenBibleImporter && (
-              <button
-                type="button"
-                onClick={onOpenBibleImporter}
-                className="p-0.5 rounded text-zinc-400 hover:text-sacred-gold transition-colors"
-                title="Importar traducción externa (BYOB)"
-              >
-                <FileUp className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
+          {/* Selector de Nivel Teológico */}
           <LevelSelector currentLevel={currentLevel} onChange={onChangeLevel} />
 
-          {/* Gestor del Cerebro (visible en sm+) */}
-          {onOpenModelManager && (
+          {/* Botón Centralizado de Ajustes */}
+          {onOpenSettings && (
             <button
               type="button"
-              onClick={onOpenModelManager}
-              className="hidden sm:flex p-1.5 sm:p-2 rounded-xl bg-nocturne-900 border border-nocturne-800 hover:border-sacred-gold/40 text-sacred-gold transition-colors"
-              title="Gestionar Cerebro Edge AI"
+              onClick={onOpenSettings}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-gradient-to-r from-nocturne-900 to-nocturne-850 hover:from-nocturne-850 hover:to-nocturne-800 border border-nocturne-800 hover:border-sacred-gold/40 text-zinc-300 hover:text-sacred-gold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Abrir panel de ajustes del sistema (Canon, Teología, Modelos, Voz)"
             >
-              <Cpu className="w-3.5 h-3.5" />
+              <Settings className="w-4 h-4 text-sacred-gold" />
+              <span className="hidden sm:inline text-[11px] font-medium">Ajustes</span>
             </button>
           )}
         </div>
@@ -336,8 +297,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
         />
       )}
 
-      {/* Feed de Mensajes con Scroll Independiente */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Feed de Mensajes con Scroll Independiente y Espacio para Cápsula Flotante */}
+      <div className="flex-1 overflow-y-auto px-3 sm:px-6 pt-3 sm:pt-4 pb-48 sm:pb-52 space-y-4 sm:space-y-6">
         {/* Tarjeta Devocional Pan Diario dentro del Scroll (no bloquea mensajes) */}
         {showDailyBread && dailyBreadData && (
           <DailyBreadCard
@@ -567,81 +528,108 @@ export const ChatView: React.FC<ChatViewProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Telemetría del Escudo Limpiador y RAG Híbrido en Tiempo Real */}
-      {lastShieldResult && (
-        <div className="px-3 sm:px-6 py-1 sm:py-1.5 bg-nocturne-900/90 border-t border-nocturne-800/80 flex flex-wrap items-center justify-between gap-1 text-[9px] sm:text-[10px] text-zinc-400 font-mono">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <Zap className="w-3 h-3 text-sacred-gold" />
-            <span>Escudo: {lastShieldResult.processingTimeMs} ms</span>
-            <span className="text-zinc-600">|</span>
-            <span>RAG Híbrido: {ragVersesCount} citas</span>
-            <span className="text-zinc-600">|</span>
-            <span className="text-zinc-300">Ruta: {lastShieldResult.detectedRoute}</span>
-          </div>
-          {lastShieldResult.normalizedText !== lastShieldResult.originalText && (
-            <div className="truncate max-w-[200px] sm:max-w-xs text-zinc-400" title={lastShieldResult.normalizedText}>
-              Norm: "{lastShieldResult.normalizedText}"
+      {/* Cápsula Flotante de Entrada de Texto (Diseño Moderno Glassmorphic Transparent) */}
+      <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-5 pointer-events-none z-20">
+        <div className="max-w-3xl mx-auto space-y-2 pointer-events-auto">
+          {/* Telemetría del Escudo Limpiador y RAG Híbrido en Tiempo Real */}
+          {lastShieldResult && (
+            <div className="px-3.5 py-1.5 bg-nocturne-900/80 backdrop-blur-xl rounded-2xl border border-white/10 flex flex-wrap items-center justify-between gap-1 text-[9px] sm:text-[10px] text-zinc-400 font-mono shadow-lg">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <Zap className="w-3 h-3 text-sacred-gold" />
+                <span>Escudo: {lastShieldResult.processingTimeMs} ms</span>
+                <span className="text-zinc-600">|</span>
+                <span>RAG Híbrido: {ragVersesCount} citas</span>
+                <span className="text-zinc-600">|</span>
+                <span className="text-sacred-gold-light">Ruta: {lastShieldResult.detectedRoute}</span>
+              </div>
+              {lastShieldResult.normalizedText !== lastShieldResult.originalText && (
+                <div className="truncate max-w-[200px] sm:max-w-xs text-zinc-400" title={lastShieldResult.normalizedText}>
+                  Norm: "{lastShieldResult.normalizedText}"
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Área de Entrada de Texto con Selector de Formato Ministerial */}
-      <footer className="p-2.5 sm:p-4 bg-nocturne-900 border-t border-nocturne-800">
-        <div className="max-w-4xl mx-auto space-y-2">
-          {/* Selector Rápido de Formatos Ministeriales */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] px-0.5">
-            {FORMAT_PILLS.map((pill) => (
-              <button
-                key={pill.id}
-                type="button"
-                onClick={() => setSelectedFormat(pill.id)}
-                className={`px-2.5 py-1 rounded-full whitespace-nowrap transition-colors border font-medium flex items-center gap-1 cursor-pointer ${
-                  selectedFormat === pill.id
-                    ? 'bg-sacred-gold text-nocturne-950 border-sacred-gold shadow-sm font-semibold'
-                    : 'bg-nocturne-950/80 text-zinc-400 hover:text-zinc-200 border-nocturne-800 hover:border-nocturne-700'
-                }`}
-              >
-                <span>{pill.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex items-end gap-1.5 sm:gap-2">
-            <div className="flex-1 relative bg-nocturne-950 rounded-xl sm:rounded-2xl border border-nocturne-750 focus-within:border-sacred-gold transition-colors shadow-inner">
-              <textarea
-                rows={2}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }
-                }}
-                placeholder={`Escribe tu consulta en español cotidiano o jerga (Nivel ${currentLevel})...`}
-                className="w-full p-2.5 sm:p-3.5 bg-transparent text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none leading-relaxed font-sans"
-              />
+          {/* Caja Flotante de Vidrio con Formatos Ministeriales y Área de Escritura */}
+          <div className="bg-nocturne-900/85 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl p-2.5 sm:p-3 transition-all focus-within:border-sacred-gold/50 focus-within:shadow-[0_0_30px_rgba(203,163,88,0.18)]">
+            {/* Selector Rápido de Formatos Ministeriales */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none text-[11px] px-1">
+              {FORMAT_PILLS.map((pill) => (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setSelectedFormat(pill.id)}
+                  className={`px-2.5 py-1 rounded-full whitespace-nowrap transition-all border font-medium flex items-center gap-1 cursor-pointer text-[10px] sm:text-[11px] ${
+                    selectedFormat === pill.id
+                      ? 'bg-sacred-gold text-nocturne-950 border-sacred-gold shadow-sm font-semibold'
+                      : 'bg-white/5 text-zinc-400 hover:text-zinc-200 border-white/5 hover:border-white/10 hover:bg-white/10'
+                  }`}
+                >
+                  <span>{pill.label}</span>
+                </button>
+              ))}
             </div>
 
-            <button
-              type="submit"
-              disabled={!inputText.trim() || isGenerating}
-              className={`p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-sacred-gold hover:bg-sacred-gold-light text-nocturne-950 font-bold shadow-md transition-all duration-200 smooth-gpu shrink-0 ${
-                !inputText.trim() || isGenerating
-                  ? 'opacity-40 cursor-not-allowed'
-                  : 'hover:scale-105 cursor-pointer'
-              }`}
-            >
-              {isGenerating ? (
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
-          </form>
+            {/* Formulario y Campo de Texto */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-1.5">
+              <div className="relative">
+                <textarea
+                  rows={2}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                  placeholder={`Escribe tu consulta en lenguaje cotidiano (Nivel ${currentLevel})...`}
+                  className="w-full px-2.5 py-1.5 bg-transparent text-xs sm:text-sm text-parchment-100 placeholder-zinc-500 focus:outline-none resize-none leading-relaxed font-sans max-h-36 overflow-y-auto"
+                />
+              </div>
+
+              {/* Barra Inferior de la Cápsula: Canon, Nivel y Botón de Enviar */}
+              <div className="flex items-center justify-between pt-1.5 border-t border-white/5 px-1">
+                <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-sans">
+                  {onOpenSettings && (
+                    <button
+                      type="button"
+                      onClick={onOpenSettings}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-sacred-gold border border-white/5 transition-colors cursor-pointer"
+                      title="Configurar Canon Bíblico y Módulos"
+                    >
+                      <BookOpen className="w-3 h-3 text-sacred-gold" />
+                      <span className="font-medium">{activeBibleVersion || 'RV1909'}</span>
+                    </button>
+                  )}
+                  <span className="hidden sm:inline-block text-zinc-600">·</span>
+                  <span className="hidden sm:inline-block text-zinc-400">Nivel {currentLevel}</span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!inputText.trim() || isGenerating}
+                  className={`px-3 py-1.5 rounded-xl bg-gradient-to-r from-sacred-gold to-sacred-gold-light text-nocturne-950 font-bold shadow-md transition-all duration-200 flex items-center gap-1.5 shrink-0 ${
+                    !inputText.trim() || isGenerating
+                      ? 'opacity-40 cursor-not-allowed'
+                      : 'hover:scale-105 active:scale-95 cursor-pointer shadow-sacred-gold/20'
+                  }`}
+                  title="Enviar consulta"
+                >
+                  {isGenerating ? (
+                    <Sparkles className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline text-xs font-semibold">Consultar</span>
+                      <Send className="w-3.5 h-3.5" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </footer>
+      </div>
     </div>
   );
 };

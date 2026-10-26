@@ -31,6 +31,7 @@ import { StrongModal } from './components/StrongModal.js';
 import { ModelManagerModal } from './components/ModelManagerModal.js';
 import { BibleImporterModal } from './components/BibleImporterModal.js';
 import { WelcomeGuideModal } from './components/WelcomeGuideModal.js';
+import { SettingsModal } from './components/SettingsModal.js';
 import { VoiceControlBar } from './components/VoiceControlBar.js';
 import { Loader2 } from 'lucide-react';
 
@@ -49,6 +50,7 @@ export const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserEvolutionProfile | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isWelcomeGuideOpen, setIsWelcomeGuideOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Comprobar primer inicio para mostrar menú de bienvenida automáticamente
   useEffect(() => {
@@ -448,6 +450,7 @@ export const App: React.FC = () => {
           isOpenMobile={isMobileSidebarOpen}
           onCloseMobile={() => setIsMobileSidebarOpen(false)}
           onOpenWelcomeGuide={() => setIsWelcomeGuideOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       )}
 
@@ -473,6 +476,7 @@ export const App: React.FC = () => {
             onStartStudyFromVerse={handleStartStudyFromVerse}
             onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
             onOpenWelcomeGuide={() => setIsWelcomeGuideOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
         )}
 
@@ -526,6 +530,32 @@ export const App: React.FC = () => {
           onVersionImported={handleVersionImported}
         />
       )}
+
+      {/* Centro Unificado de Ajustes Modernos del Sistema */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentLevel={currentLevel}
+        onChangeLevel={handleChangeLevel}
+        activeBibleVersion={activeBibleVersion}
+        availableVersions={availableVersions}
+        onSelectBibleVersion={handleSelectBibleVersion}
+        onOpenBibleImporter={() => {
+          setIsSettingsOpen(false);
+          setIsImporterOpen(true);
+        }}
+        onOpenModelManager={() => {
+          setIsSettingsOpen(false);
+          setIsModelModalOpen(true);
+        }}
+        activeModelName={activeModelName}
+        userProfile={userProfile || undefined}
+        onExportBackup={handleExportBackup}
+        onOpenWelcomeGuide={() => {
+          setIsSettingsOpen(false);
+          setIsWelcomeGuideOpen(true);
+        }}
+      />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
   Sparkles,
   X,
   HelpCircle,
+  Settings,
 } from 'lucide-react';
 
 interface SidebarHistoryProps {
@@ -30,6 +31,7 @@ interface SidebarHistoryProps {
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
   onOpenWelcomeGuide?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
@@ -48,6 +50,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
   isOpenMobile = false,
   onCloseMobile,
   onOpenWelcomeGuide,
+  onOpenSettings,
 }) => {
   const handleSelectChatSafe = (chatId: string) => {
     onSelectChat(chatId);
@@ -225,37 +228,54 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
         )}
       </div>
 
-      {/* Ficha Maestra de Memoria Global Evolutiva */}
-      <div className="p-3 border-t border-nocturne-800 bg-nocturne-950/90">
-        <div className="p-3 rounded-xl bg-nocturne-900 border border-nocturne-800 space-y-2">
+      {/* Pie del Panel Lateral: Ajustes Centralizados y Memoria */}
+      <div className="p-3 border-t border-nocturne-800 bg-nocturne-950/95 space-y-2">
+        {/* Acceso Principal y Destacado a Ajustes */}
+        {onOpenSettings && (
+          <button
+            type="button"
+            onClick={() => {
+              onOpenSettings();
+              if (onCloseMobile) onCloseMobile();
+            }}
+            className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-gradient-to-r from-nocturne-900 to-nocturne-850 hover:from-nocturne-850 hover:to-nocturne-800 border border-nocturne-800 hover:border-sacred-gold/40 text-zinc-200 transition-all cursor-pointer group shadow-sm active:scale-[0.99]"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-sacred-gold/15 border border-sacred-gold/30 flex items-center justify-center text-sacred-gold group-hover:scale-105 transition-transform shadow-inner">
+                <Settings className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <span className="block text-xs font-semibold text-parchment-100 leading-tight">
+                  Ajustes del Sistema
+                </span>
+                <span className="block text-[10px] text-zinc-400 font-mono mt-0.5">
+                  Canon · Nivel · Motores
+                </span>
+              </div>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-sacred-gold/15 text-sacred-gold font-mono font-bold border border-sacred-gold/30">
+              Abrir
+            </span>
+          </button>
+        )}
+
+        {/* Ficha Resumen de Memoria Evolutiva */}
+        <div className="p-2.5 rounded-2xl bg-nocturne-900/70 border border-nocturne-800/80 space-y-1.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-sacred-gold-light">
               <BrainCircuit className="w-3.5 h-3.5" />
               <span>Memoria Evolutiva</span>
             </div>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
               {userProfile.nivel_espiritual}
             </span>
           </div>
 
-          <p className="text-[11px] text-zinc-400 leading-tight">
+          <p className="text-[10px] text-zinc-400 leading-tight truncate">
             {userProfile.resumen_madurez}
           </p>
 
-          <div className="grid grid-cols-2 gap-1.5 pt-1 text-[10px] text-zinc-400">
-            <div className="bg-nocturne-950/80 p-1.5 rounded border border-nocturne-800">
-              <span className="block text-zinc-400">Temas</span>
-              <strong className="text-zinc-200">{userProfile.temas_estudiados.length} tratados</strong>
-            </div>
-            <div className="bg-nocturne-950/80 p-1.5 rounded border border-nocturne-800">
-              <span className="block text-zinc-400">Dudas</span>
-              <strong className="text-zinc-200">
-                {userProfile.dudas_pendientes.filter((d) => !d.resuelta).length} pendientes
-              </strong>
-            </div>
-          </div>
-
-          <div className="pt-2 flex items-center justify-between text-[10px] text-zinc-400 border-t border-nocturne-800">
+          <div className="pt-1.5 flex items-center justify-between text-[10px] text-zinc-400 border-t border-nocturne-800">
             <button
               onClick={() => {
                 onOpenModelManager?.();
@@ -275,7 +295,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
                     onOpenWelcomeGuide();
                     if (onCloseMobile) onCloseMobile();
                   }}
-                  className="flex items-center gap-1 text-zinc-400 hover:text-sacred-gold transition-colors"
+                  className="flex items-center gap-1 text-zinc-400 hover:text-sacred-gold transition-colors cursor-pointer"
                   title="Abrir Guía de Bienvenida"
                 >
                   <HelpCircle className="w-3 h-3 text-sacred-gold" />
@@ -284,7 +304,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
               )}
               <button
                 onClick={onExportBackup}
-                className="flex items-center gap-1 text-sacred-gold hover:underline"
+                className="flex items-center gap-1 text-sacred-gold hover:underline cursor-pointer"
                 title="Descargar backup JSON"
               >
                 <Download className="w-3 h-3" />
