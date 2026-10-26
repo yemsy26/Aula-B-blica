@@ -35,12 +35,37 @@ const NUMBERED_BOOKS_MAP: [RegExp, string][] = [
 ];
 
 const THEOLOGICAL_PHONETICS: [RegExp, string][] = [
+  // Nombre Sagrado Divino y Compuestos Teofónicos (Evita deletreo como sigla en motores TTS)
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JEHOV[AÁ][- ](?:JIREH|YIREH)(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jehová Yiré'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JEHOV[AÁ][- ](?:RAPHA|RAFA)(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jehová Rafa'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JEHOV[AÁ][- ](?:NISSI|NISI)(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jehová Nisí'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JEHOV[AÁ][- ]SHALOM(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jehová Shalóm'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JEHOV[AÁ][- ]TSIDKENU(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jehová Tsidkenu'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JEHOV[AÁ][- ]SABAOTH(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jehová Sabaot'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JEHOV[AÁ][- ]SHAMMAH(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jehová Samá'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JEHOV[AÁ](?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jehová'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])Jehova(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/gu, 'Jehová'],
+
+  // Nombres Divinos y Términos en Mayúsculas (para prevenir deletreo en síntesis vocal)
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])SEÑOR(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/gu, 'Señor'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])DIOS(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/gu, 'Dios'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JESUCRISTO(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jesucristo'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])JES[UÚ]S(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Jesús'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])CRISTO(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/gu, 'Cristo'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])ESP[IÍ]RITU SANTO(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Espíritu Santo'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])AM[EÉ]N(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Amén'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])ALELUYA(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Aleluya'],
+  [/(?<![A-Za-zÁÉÍÓÚáéíóúñÑ])HOSANNA(?![A-Za-zÁÉÍÓÚáéíóúñÑ])/giu, 'Hosanna'],
+
   // Raíces Hebreas
   [/\bshalom\b/gi, 'Shalóm'],
   [/\bkhesed\b|\bhesed\b|\bchesed\b/gi, 'Jésed'],
   [/\bbara\b/gi, 'Bará'],
   [/\belohim\b/gi, 'Elohím'],
-  [/\byahweh\b|\byhwh\b/gi, 'Yahvé'],
+  [/\badonai\b/gi, 'Adonái'],
+  [/\bel[- ]shaddai\b/gi, 'El Shaddái'],
+  [/\bel[- ]elyon\b/gi, 'El Elyón'],
+  [/\byahweh\b|\byhwh\b|\byahveh\b/gi, 'Yahvé'],
   [/\breshith\b|\breshit\b/gi, 'Reshít'],
   [/\bshekinah\b/gi, 'Shejiná'],
 

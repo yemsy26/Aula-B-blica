@@ -80,6 +80,15 @@ describe('Motor de Voz Offline (TTS) y Limpiador Fonético', () => {
     expect(speech).toContain('Agápe');
   });
 
+  it('debe normalizar JEHOVA y compuestos teofónicos a fonética fluida con acento (Jehová) sin deletreo', () => {
+    const input = '«JEHOVA es mi pastor; nada me faltará.» JEHOVA-JIREH proveerá conforme a su pacto.';
+    const speech = offlineTts.cleanTextForSpeech(input);
+
+    expect(speech).toContain('Jehová es mi pastor');
+    expect(speech).toContain('Jehová Yiré');
+    expect(speech).not.toContain('JEHOVA');
+  });
+
   it('debe segmentar texto con modulación prosódica diferenciada para versículos y narrativa', () => {
     const rawStudy = `### La Promesa en la Aflicción\nEl apóstol nos consuela:\n> **«En el mundo tendréis aflicción; pero confiad, yo he vencido al mundo.»** — *Juan 16:33*\nDescansa en esta verdad cada mañana.`;
     const chunks = ProsodyChunker.chunk(rawStudy);
