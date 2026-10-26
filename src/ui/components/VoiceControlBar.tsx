@@ -69,11 +69,17 @@ export const VoiceControlBar: React.FC = () => {
     }
     offlineTts.setEngineMode('PIPER_HD_OFFLINE');
 
-    // Mapear automáticamente a una voz adecuada de la región
-    const regionLang = model.id.startsWith('es_MX') ? 'es-MX' : 'es-ES';
-    const matchingVoice = rankedVoices.find((v) =>
-      (v.lang || '').toLowerCase().replace('_', '-').includes(regionLang.toLowerCase())
-    );
+    // Mapear automáticamente a una voz adecuada de la región (Latinoamérica o España)
+    const isLatam = model.id.startsWith('es_MX');
+    const matchingVoice =
+      rankedVoices.find((v) => {
+        const langLower = (v.lang || '').toLowerCase().replace('_', '-');
+        if (isLatam) {
+          return langLower.includes('mx') || langLower.includes('us') || langLower.includes('419');
+        }
+        return langLower.includes('es');
+      }) || rankedVoices[0];
+
     if (matchingVoice) {
       offlineTts.setVoice(matchingVoice.name);
     }

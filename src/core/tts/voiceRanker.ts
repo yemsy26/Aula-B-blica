@@ -147,12 +147,37 @@ export function rankVoices(rawVoices: TtsVoiceOption[]): RankedVoiceOption[] {
     // Si el nombre es un identificador técnico de Android TTS
     if (/^[a-z]{2}[-_][a-z]{2}[-_]/i.test(cleanName)) {
       const parts = cleanName.split(/[-_]/);
-      const reg = parts[1]?.toUpperCase() || 'ES';
+      const regCode = parts[1]?.toUpperCase() || 'ES';
+      const regLabel = regCode === 'US' ? 'Latinoamérica' : regCode === 'ES' ? 'España' : regCode;
       const isNet = cleanName.toLowerCase().includes('network');
-      const isFem = cleanName.toLowerCase().includes('female') || cleanName.toLowerCase().includes('ana');
-      const isMasc = cleanName.toLowerCase().includes('male') || cleanName.toLowerCase().includes('vic');
-      const gender = isFem ? 'Femenina' : isMasc ? 'Masculina' : 'Natural';
-      cleanName = `Español (${reg}) - ${gender}${isNet ? ' HD' : ''}`;
+
+      const variantToken = (parts[3] || parts[2] || '').toLowerCase();
+      let gender = 'Natural';
+      if (
+        variantToken.includes('eed') ||
+        variantToken.includes('eef') ||
+        variantToken.includes('esd') ||
+        variantToken.includes('sfb') ||
+        cleanName.toLowerCase().includes('male') ||
+        cleanName.toLowerCase().includes('vic')
+      ) {
+        gender = 'Masculina';
+      } else if (
+        variantToken.includes('eea') ||
+        variantToken.includes('eec') ||
+        variantToken.includes('eee') ||
+        variantToken.includes('esc') ||
+        variantToken.includes('esf') ||
+        cleanName.toLowerCase().includes('female') ||
+        cleanName.toLowerCase().includes('ana')
+      ) {
+        gender = 'Femenina';
+      }
+
+      const variantSuffix = variantToken.replace(/[^a-z0-9]/g, '').slice(-2).toUpperCase();
+      const variantTag = variantSuffix ? ` [${variantSuffix}]` : '';
+
+      cleanName = `Español (${regLabel}) - ${gender}${variantTag}${isNet ? ' HD' : ''}`;
     }
 
     return {

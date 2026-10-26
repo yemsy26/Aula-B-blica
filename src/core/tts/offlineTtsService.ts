@@ -68,9 +68,10 @@ export class OfflineTtsService implements TtsController {
 
       const voiceRes = await TextToSpeech.getSupportedVoices();
       if (voiceRes && voiceRes.voices && voiceRes.voices.length > 0) {
-        // Filtrar voces en español
+        // Filtrar voces en español y excluir alias genéricos
         const spanishVoices = voiceRes.voices.filter((v: any) =>
-          (v.lang || '').toLowerCase().startsWith('es')
+          (v.lang || '').toLowerCase().startsWith('es') &&
+          !(v.voiceURI || v.name || '').toLowerCase().includes('-language')
         );
 
         const voiceList = spanishVoices.length > 0 ? spanishVoices : voiceRes.voices;
@@ -160,8 +161,24 @@ export class OfflineTtsService implements TtsController {
   }
 
   setVoice(voiceName: string): void {
+    const isDifferent = this.state.selectedVoiceName !== voiceName;
     this.state.selectedVoiceName = voiceName;
     this.notifyState();
+
+    if (isDifferent && this.state.isPlaying && !this.state.isPaused) {
+      if (Capacitor.isNativePlatform()) {
+        TextToSpeech.stop().catch(() => {}).finally(() => {
+          if (this.state.isPlaying && !this.state.isPaused) {
+            this.playChunk(this.activeChunkIndex);
+          }
+        });
+      } else if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        if (this.state.isPlaying && !this.state.isPaused) {
+          this.playChunk(this.activeChunkIndex);
+        }
+      }
+    }
   }
 
   setEngineMode(mode: TtsEngineMode): void {
@@ -232,6 +249,7 @@ export class OfflineTtsService implements TtsController {
     // 1. En entorno Android/iOS nativo, utilizar el motor TTS nativo del sistema
     if (Capacitor.isNativePlatform()) {
       let targetVoiceIndex: number = -1;
+      let targetVoiceURI: string | undefined = undefined;
       let targetLang = this.nativeLang || 'es-ES';
 
       if (this.state.selectedVoiceName && this.nativeVoicesCache.length > 0) {
@@ -243,10 +261,12 @@ export class OfflineTtsService implements TtsController {
         );
         if (found) {
           targetVoiceIndex = found.voiceIndex;
+          targetVoiceURI = found.name;
           if (found.lang) targetLang = found.lang;
         }
       } else if (this.nativeVoicesCache.length > 0) {
         targetVoiceIndex = this.nativeVoicesCache[0].voiceIndex;
+        targetVoiceURI = this.nativeVoicesCache[0].name;
         if (this.nativeVoicesCache[0].lang) targetLang = this.nativeVoicesCache[0].lang;
       }
 
@@ -263,6 +283,7 @@ export class OfflineTtsService implements TtsController {
         pitch,
         volume: 1.0,
         voice: targetVoiceIndex >= 0 ? targetVoiceIndex : undefined,
+        voiceURI: targetVoiceURI,
         category: 'playback',
       });
 
