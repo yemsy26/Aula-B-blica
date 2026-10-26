@@ -1,5 +1,5 @@
 import { TtsController, TtsState, TtsVoiceOption, TtsEngineMode } from './types.js';
-import { rankVoices, RankedVoiceOption } from './voiceRanker.js';
+import { rankVoices, RankedVoiceOption, PREDEFINED_NATURAL_VOICES } from './voiceRanker.js';
 import { cleanPhonetics, ProsodyChunker, ProsodyChunk } from './prosodyChunker.js';
 import { piperNeuralTts } from './piperNeuralTtsAdapter.js';
 import { Capacitor } from '@capacitor/core';
@@ -18,6 +18,7 @@ export class OfflineTtsService implements TtsController {
 
   private onStateChangeListeners: ((state: TtsState) => void)[] = [];
   private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private currentAudio: HTMLAudioElement | null = null;
   private activeUtterancesSet = new Set<SpeechSynthesisUtterance>();
   private activeChunks: ProsodyChunk[] = [];
   private activeChunkIndex: number = 0;
@@ -33,6 +34,10 @@ export class OfflineTtsService implements TtsController {
   }
 
   private initVoices(): void {
+    if (!this.state.selectedVoiceName && PREDEFINED_NATURAL_VOICES.length > 0) {
+      this.state.selectedVoiceName = PREDEFINED_NATURAL_VOICES[0].name;
+    }
+
     if (Capacitor.isNativePlatform()) {
       this.initNativeTts();
       return;
@@ -42,14 +47,12 @@ export class OfflineTtsService implements TtsController {
       const updateBestVoice = () => {
         const ranked = this.getVoices();
         if (ranked.length > 0 && !this.state.selectedVoiceName) {
-          // Seleccionar automáticamente la voz con mayor ranking (Tier 1 Neural HD)
           this.state.selectedVoiceName = ranked[0].name;
         }
         this.notifyState();
       };
 
       window.speechSynthesis.onvoiceschanged = updateBestVoice;
-      // Intento inmediato por si las voces ya están listas
       updateBestVoice();
     }
   }
@@ -133,30 +136,52 @@ export class OfflineTtsService implements TtsController {
    * Obtiene la lista de voces en español clasificadas y ordenadas por calidad humana (Tier 1 a Tier 3)
    */
   getVoices(): RankedVoiceOption[] {
-    if (Capacitor.isNativePlatform()) {
-      if (this.nativeVoicesCache.length > 0) {
-        return this.nativeVoicesCache;
-      }
-      this.initNativeTts();
-      return [];
-    }
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      return [];
-    }
-    const rawVoices = window.speechSynthesis.getVoices();
-    const voiceOptions: TtsVoiceOption[] = rawVoices.map((v, idx) => ({
-      voiceIndex: idx,
-      name: v.name,
-      lang: v.lang,
-      isDefault: v.default,
-      isLocalService: v.localService,
-    }));
+    const list: RankedVoiceOption[] = [];
 
-    return rankVoices(voiceOptions);
+    // 1. Siempre incluir el catálogo de Voces Naturales HD (disponibles en Android y Web)
+    for (const nv of PREDEFINED_NATURAL_VOICES) {
+      list.push(nv);
+    }
+
+    // 2. En plataforma nativa Android, incorporar las voces del sistema detectadas
+    if (Capacitor.isNativePlatform()) {
+      if (this.nativeVoicesCache.length === 0) {
+        this.initNativeTts();
+      }
+      for (const v of this.nativeVoicesCache) {
+        if (!list.some((existing) => existing.name === v.name || existing.displayName === v.displayName)) {
+          list.push(v);
+        }
+      }
+      return list.sort((a, b) => b.score - a.score);
+    }
+
+    // 3. En entorno Web, incorporar voces del navegador
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const rawVoices = window.speechSynthesis.getVoices();
+      const voiceOptions: TtsVoiceOption[] = rawVoices.map((v, idx) => ({
+        voiceIndex: idx,
+        name: v.name,
+        lang: v.lang,
+        isDefault: v.default,
+        isLocalService: v.localService,
+      }));
+      const rankedWeb = rankVoices(voiceOptions);
+      for (const v of rankedWeb) {
+        if (!list.some((existing) => existing.name === v.name || existing.displayName === v.displayName)) {
+          list.push(v);
+        }
+      }
+    }
+
+    return list.sort((a, b) => b.score - a.score);
   }
 
   setRate(rate: number): void {
     this.state.rate = Math.min(Math.max(rate, 0.7), 1.6);
+    if (this.currentAudio) {
+      this.currentAudio.playbackRate = this.state.rate;
+    }
     this.notifyState();
   }
 
@@ -166,6 +191,10 @@ export class OfflineTtsService implements TtsController {
     this.notifyState();
 
     if (isDifferent && this.state.isPlaying && !this.state.isPaused) {
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
       if (Capacitor.isNativePlatform()) {
         TextToSpeech.stop().catch(() => {}).finally(() => {
           if (this.state.isPlaying && !this.state.isPaused) {
@@ -246,11 +275,78 @@ export class OfflineTtsService implements TtsController {
     this.state.currentUtteranceText = chunk.text;
     this.notifyState();
 
+    const isNatural =
+      PREDEFINED_NATURAL_VOICES.some(
+        (nv) =>
+          nv.name === this.state.selectedVoiceName ||
+          nv.displayName === this.state.selectedVoiceName
+      ) || (this.state.selectedVoiceName || '').toLowerCase().includes('natural');
+
+    let targetLang = this.nativeLang || 'es-ES';
+    if (this.state.selectedVoiceName) {
+      const match = PREDEFINED_NATURAL_VOICES.find(
+        (v) =>
+          v.name === this.state.selectedVoiceName ||
+          v.displayName === this.state.selectedVoiceName
+      );
+      if (match?.lang) targetLang = match.lang;
+    }
+
+    // A. Si se seleccionó una voz Natural y el navegador/WebView dispone de soporte de Audio:
+    // Reproducir mediante flujo de voz natural cálida y de alta definición
+    if (isNatural && typeof Audio !== 'undefined') {
+      try {
+        const streamUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(
+          chunk.text
+        )}&tl=${encodeURIComponent(targetLang)}&client=tw-ob`;
+
+        const audio = new Audio(streamUrl);
+        this.currentAudio = audio;
+        audio.playbackRate = this.state.rate;
+
+        audio.onended = () => {
+          this.currentAudio = null;
+          if (!this.state.isPlaying || this.state.isPaused) return;
+          this.pauseTimeoutId = setTimeout(() => {
+            if (this.state.isPlaying && !this.state.isPaused) {
+              this.playChunk(index + 1);
+            }
+          }, chunk.pauseAfterMs || 250);
+        };
+
+        audio.onerror = () => {
+          this.currentAudio = null;
+          this.playChunkWithDeviceEngine(chunk, index, targetLang);
+        };
+
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            this.currentAudio = null;
+            this.playChunkWithDeviceEngine(chunk, index, targetLang);
+          });
+        }
+        return;
+      } catch {
+        this.currentAudio = null;
+        this.playChunkWithDeviceEngine(chunk, index, targetLang);
+        return;
+      }
+    }
+
+    // B. Si es una voz del sistema o no hay Audio HTML5, reproducir con el motor del dispositivo
+    this.playChunkWithDeviceEngine(chunk, index, targetLang);
+  }
+
+  private playChunkWithDeviceEngine(
+    chunk: ProsodyChunk,
+    index: number,
+    targetLang: string
+  ): void {
     // 1. En entorno Android/iOS nativo, utilizar el motor TTS nativo del sistema
     if (Capacitor.isNativePlatform()) {
       let targetVoiceIndex: number = -1;
       let targetVoiceURI: string | undefined = undefined;
-      let targetLang = this.nativeLang || 'es-ES';
 
       if (this.state.selectedVoiceName && this.nativeVoicesCache.length > 0) {
         const found = this.nativeVoicesCache.find(
@@ -270,10 +366,8 @@ export class OfflineTtsService implements TtsController {
         if (this.nativeVoicesCache[0].lang) targetLang = this.nativeVoicesCache[0].lang;
       }
 
-      // Velocidad adaptativa: ritmo general del usuario ajustado ligeramente por tipo de fragmento
       const rateMultiplier = chunk.kind === 'verse' ? 0.95 : 1.0;
       const rate = Math.min(Math.max(this.state.rate * rateMultiplier, 0.7), 1.4);
-      // En Android nativo, 1.0 mantiene la resonancia humana pura sin distorsión metálica por cambio de tono
       const pitch = 1.0;
 
       const speakPromise = TextToSpeech.speak({
@@ -287,7 +381,6 @@ export class OfflineTtsService implements TtsController {
         category: 'playback',
       });
 
-      // Máximo tiempo de espera prudente (45s) para evitar que un cuelgue del sistema congele la app
       const maxTimeoutMs = Math.max(chunk.text.length * 400, 45000);
       const timeoutPromise = new Promise<void>((_, reject) => {
         this.chunkTimeoutId = setTimeout(() => {
@@ -317,10 +410,8 @@ export class OfflineTtsService implements TtsController {
           }
           console.warn(`[TTS Nativo Android] Error o reconexión en chunk ${index}:`, err);
           if (!this.state.isPlaying || this.state.isPaused) return;
-          // Si el índice actual ya avanzó o cambió, ignorar evento antiguo
           if (this.activeChunkIndex !== index) return;
 
-          // Reintentar el mismo chunk con espera suficiente para reconexión de DeadObject/rebind (1.4s)
           if (this.playChunkRetryCount < 3) {
             this.playChunkRetryCount++;
             this.pauseTimeoutId = setTimeout(() => {
@@ -350,15 +441,13 @@ export class OfflineTtsService implements TtsController {
 
     // 3. Entorno Navegador Web
     const utterance = new SpeechSynthesisUtterance(chunk.text);
-    utterance.lang = 'es-ES';
-    // Aplicar modulación prosódica combinada con la velocidad elegida por el usuario
+    utterance.lang = targetLang || 'es-ES';
     utterance.rate = Math.min(Math.max(chunk.rate * this.state.rate, 0.6), 1.6);
     utterance.pitch = Math.min(Math.max(chunk.pitch * this.state.pitch, 0.7), 1.4);
 
-    // Asignar voz seleccionada o la de mayor ranking
     const rawVoices = window.speechSynthesis.getVoices();
     if (this.state.selectedVoiceName) {
-      const v = rawVoices.find((x) => x.name === this.state.selectedVoiceName);
+      const v = rawVoices.find((x) => x.name === this.state.selectedVoiceName || x.name.includes(this.state.selectedVoiceName!));
       if (v) utterance.voice = v;
     } else {
       const ranked = this.getVoices();
@@ -372,7 +461,6 @@ export class OfflineTtsService implements TtsController {
 
     utterance.onend = () => {
       this.activeUtterancesSet.delete(utterance);
-      // Pausa respiratoria natural antes del siguiente chunk
       this.pauseTimeoutId = setTimeout(() => {
         if (this.state.isPlaying && !this.state.isPaused) {
           this.playChunk(index + 1);
@@ -401,6 +489,11 @@ export class OfflineTtsService implements TtsController {
   }
 
   private finishPlayback(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
     if (this.chunkTimeoutId) {
       clearTimeout(this.chunkTimeoutId);
       this.chunkTimeoutId = null;
@@ -419,6 +512,9 @@ export class OfflineTtsService implements TtsController {
   }
 
   pause(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+    }
     if (this.chunkTimeoutId) {
       clearTimeout(this.chunkTimeoutId);
       this.chunkTimeoutId = null;
@@ -441,6 +537,13 @@ export class OfflineTtsService implements TtsController {
     this.state.isPaused = false;
     this.notifyState();
 
+    if (this.currentAudio && this.currentAudio.paused) {
+      this.currentAudio.play().catch(() => {
+        this.playChunk(this.activeChunkIndex);
+      });
+      return;
+    }
+
     if (Capacitor.isNativePlatform()) {
       if (this.activeChunks.length > 0) {
         this.playChunk(this.activeChunkIndex);
@@ -455,6 +558,11 @@ export class OfflineTtsService implements TtsController {
   }
 
   stop(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
     if (this.chunkTimeoutId) {
       clearTimeout(this.chunkTimeoutId);
       this.chunkTimeoutId = null;
@@ -483,6 +591,11 @@ export class OfflineTtsService implements TtsController {
   }
 
   nextChunk(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
     if (this.activeChunks.length === 0) return;
     if (this.chunkTimeoutId) {
       clearTimeout(this.chunkTimeoutId);
@@ -506,6 +619,11 @@ export class OfflineTtsService implements TtsController {
   }
 
   previousChunk(): void {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
     if (this.activeChunks.length === 0) return;
     if (this.chunkTimeoutId) {
       clearTimeout(this.chunkTimeoutId);

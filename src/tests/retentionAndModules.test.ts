@@ -68,6 +68,23 @@ describe('Motor de Voz Offline (TTS) y Limpiador Fonético', () => {
     expect(ranked[0].tier).toBe('TIER_1_NEURAL');
   });
 
+  it('debe exponer el catálogo unificado de Voces Naturales HD para Android y Web', () => {
+    const voices = offlineTts.getVoices();
+    expect(voices.length).toBeGreaterThanOrEqual(7);
+
+    const naturalVoices = voices.filter((v) => v.tier === 'TIER_1_NEURAL');
+    expect(naturalVoices.length).toBeGreaterThanOrEqual(7);
+
+    const names = voices.map((v) => v.name);
+    expect(names.some((n) => n.includes('Jorge'))).toBe(true);
+    expect(names.some((n) => n.includes('Dalia'))).toBe(true);
+    expect(names.some((n) => n.includes('Álvaro'))).toBe(true);
+    expect(names.some((n) => n.includes('Elvira'))).toBe(true);
+    expect(names.some((n) => n.includes('Paloma'))).toBe(true);
+    expect(names.some((n) => n.includes('Gonzalo'))).toBe(true);
+    expect(names.some((n) => n.includes('Salomé'))).toBe(true);
+  });
+
   it('debe pronunciar reverentemente libros numerados (Primera de Juan, Segunda de Corintios) y raíces hebreas', () => {
     const input =
       'Como enseña 1 Juan 1:9 y 2 Corintios 5:17, Dios en su shalom y khesed nos renueva con su agape.';
