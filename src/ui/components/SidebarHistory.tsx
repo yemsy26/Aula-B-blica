@@ -83,7 +83,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
         } ${isOpenMobile ? 'flex' : 'hidden md:flex'}`}
       >
         {/* Cabecera de la Marca & Nuevo Chat */}
-        <div className="p-4 border-b border-nocturne-800 flex flex-col gap-3">
+        <div className="p-4 pt-[max(env(safe-area-inset-top,0px),1.85rem)] md:pt-4 border-b border-nocturne-800 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-sacred-gold/20 border border-sacred-gold/40 flex items-center justify-center text-sacred-gold font-serif font-bold text-base shadow-sm">

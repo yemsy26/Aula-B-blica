@@ -243,8 +243,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
   return (
     <div className="flex-1 h-full flex flex-col bg-nocturne-950 overflow-hidden text-zinc-200 relative">
-      {/* Barra Superior del Chat (Moderna y Despejada) */}
-      <header className="px-3 sm:px-6 py-2.5 sm:py-3 border-b border-nocturne-800 bg-nocturne-900/80 backdrop-blur-xl flex items-center justify-between z-10 gap-2 shrink-0">
+      {/* Barra Superior del Chat (Moderna y Despejada con resguardo para status bar móvil) */}
+      <header className="px-3 sm:px-6 pt-[max(env(safe-area-inset-top,0px),1.85rem)] pb-2.5 sm:py-3 border-b border-nocturne-800 bg-nocturne-900/80 backdrop-blur-xl flex items-center justify-between z-10 gap-2 shrink-0">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {/* Botón de Menú Móvil Prominente para abrir historial */}
           {onToggleMobileSidebar && (

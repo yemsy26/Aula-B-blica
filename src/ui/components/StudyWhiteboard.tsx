@@ -149,7 +149,7 @@ export const StudyWhiteboard: React.FC<StudyWhiteboardProps> = ({
           isMobileDetailView ? 'hidden md:flex' : 'flex'
         }`}
       >
-        <div className="p-3.5 sm:p-4 border-b border-nocturne-800 flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 pt-[max(env(safe-area-inset-top,0px),1.85rem)] sm:pt-4 border-b border-nocturne-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {onToggleMobileSidebar && (
               <button
