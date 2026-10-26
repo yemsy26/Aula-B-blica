@@ -1,3 +1,6 @@
+import { Capacitor } from '@capacitor/core';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
+
 export interface PiperModelConfig {
   id: string;
   name: string;
@@ -117,6 +120,29 @@ export class PiperNeuralTtsAdapter {
     }
 
     this.isSynthesizing = true;
+
+    // En entorno nativo Android/iOS, usar el sintetizador nativo
+    if (Capacitor.isNativePlatform()) {
+      const lang = this.activeModelId?.startsWith('es_MX') ? 'es-MX' : 'es-ES';
+      TextToSpeech.speak({
+        text,
+        lang,
+        rate: 0.98,
+        pitch: 1.0,
+        volume: 1.0,
+        category: 'playback',
+      })
+        .then(() => {
+          this.isSynthesizing = false;
+          if (onEnd) onEnd();
+        })
+        .catch((e) => {
+          console.warn('[Piper Native TTS] Error:', e);
+          this.isSynthesizing = false;
+          if (onEnd) onEnd();
+        });
+      return;
+    }
 
     // En navegador con SpeechSynthesis, podemos redirigir con prosodia mejorada o reproducir audio sintetizado
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {

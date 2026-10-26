@@ -67,13 +67,24 @@ export class OfflineTtsService implements TtsController {
 
       const voiceRes = await TextToSpeech.getSupportedVoices();
       if (voiceRes && voiceRes.voices && voiceRes.voices.length > 0) {
-        const voiceOpts: TtsVoiceOption[] = voiceRes.voices.map((v: any, idx: number) => ({
-          voiceIndex: idx,
-          name: v.name || v.voiceURI || `Android Voice ${idx + 1}`,
-          lang: v.lang || this.nativeLang,
-          isDefault: !!v.default,
-          isLocalService: v.localService !== false,
-        }));
+        // Filtrar voces en español
+        const spanishVoices = voiceRes.voices.filter((v: any) =>
+          (v.lang || '').toLowerCase().startsWith('es')
+        );
+
+        const voiceList = spanishVoices.length > 0 ? spanishVoices : voiceRes.voices;
+
+        const voiceOpts: TtsVoiceOption[] = voiceList.map((v: any, idx: number) => {
+          const originalIdx = voiceRes.voices.indexOf(v);
+          return {
+            voiceIndex: originalIdx >= 0 ? originalIdx : idx,
+            name: v.voiceURI || v.name || `Android Voice ${idx + 1}`,
+            lang: v.lang || this.nativeLang,
+            isDefault: !!v.default,
+            isLocalService: v.localService !== false,
+          };
+        });
+
         this.nativeVoicesCache = rankVoices(voiceOpts);
         if (this.nativeVoicesCache.length > 0 && !this.state.selectedVoiceName) {
           this.state.selectedVoiceName = this.nativeVoicesCache[0].name;
@@ -162,24 +173,6 @@ export class OfflineTtsService implements TtsController {
       return;
     }
 
-    // Si está activo el motor Piper Neural HD Offline y el modelo está listo
-    if (this.state.activeEngineMode === 'PIPER_HD_OFFLINE' && piperNeuralTts.isModelLoaded()) {
-      const cleanText = this.cleanTextForSpeech(text);
-      this.state.isPlaying = true;
-      this.state.isPaused = false;
-      this.state.currentUtteranceText = cleanText;
-      this.notifyState();
-
-      piperNeuralTts.speak(cleanText, () => {
-        this.state.isPlaying = false;
-        this.state.isPaused = false;
-        this.state.currentUtteranceText = undefined;
-        this.notifyState();
-        if (onEnd) onEnd();
-      });
-      return;
-    }
-
     // Segmentar con el ProsodyChunker
     const chunks = ProsodyChunker.chunk(text);
     if (chunks.length === 0) {
@@ -219,15 +212,38 @@ export class OfflineTtsService implements TtsController {
 
     // 1. En entorno Android/iOS nativo, utilizar el motor TTS nativo del sistema
     if (Capacitor.isNativePlatform()) {
-      const rate = Math.min(Math.max(chunk.rate * this.state.rate, 0.6), 1.5);
-      const pitch = Math.min(Math.max(chunk.pitch * this.state.pitch, 0.7), 1.3);
+      let targetVoiceIndex: number = -1;
+      let targetLang = this.nativeLang || 'es-ES';
+
+      if (this.state.selectedVoiceName && this.nativeVoicesCache.length > 0) {
+        const found = this.nativeVoicesCache.find(
+          (v) =>
+            v.name === this.state.selectedVoiceName ||
+            v.displayName === this.state.selectedVoiceName ||
+            v.voiceIndex.toString() === this.state.selectedVoiceName
+        );
+        if (found) {
+          targetVoiceIndex = found.voiceIndex;
+          if (found.lang) targetLang = found.lang;
+        }
+      } else if (this.nativeVoicesCache.length > 0) {
+        targetVoiceIndex = this.nativeVoicesCache[0].voiceIndex;
+        if (this.nativeVoicesCache[0].lang) targetLang = this.nativeVoicesCache[0].lang;
+      }
+
+      // Velocidad adaptativa: ritmo general del usuario ajustado ligeramente por tipo de fragmento
+      const rateMultiplier = chunk.kind === 'verse' ? 0.95 : 1.0;
+      const rate = Math.min(Math.max(this.state.rate * rateMultiplier, 0.7), 1.4);
+      // En Android nativo, 1.0 mantiene la resonancia humana pura sin distorsión metálica por cambio de tono
+      const pitch = 1.0;
 
       TextToSpeech.speak({
         text: chunk.text,
-        lang: this.nativeLang || 'es-ES',
+        lang: targetLang,
         rate,
         pitch,
         volume: 1.0,
+        voice: targetVoiceIndex >= 0 ? targetVoiceIndex : undefined,
         category: 'playback',
       })
         .then(() => {

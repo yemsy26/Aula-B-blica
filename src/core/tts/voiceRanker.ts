@@ -23,6 +23,11 @@ const TIER1_NEURAL_KEYWORDS = [
   'monica (mejorada)',
   'google español',
   'google es',
+  'network',
+  'wavenet',
+  'enhanced',
+  'alta calidad',
+  'premium',
 ];
 
 const PREFERRED_REGIONS = [
@@ -138,6 +143,17 @@ export function rankVoices(rawVoices: TtsVoiceOption[]): RankedVoiceOption[] {
     let cleanName = v.name;
     // Limpiar prefijos de Microsoft o Google si ensucian la UI
     cleanName = cleanName.replace(/^Microsoft\s+/i, '').replace(/^Google\s+/i, 'Google ');
+
+    // Si el nombre es un identificador técnico de Android TTS
+    if (/^[a-z]{2}[-_][a-z]{2}[-_]/i.test(cleanName)) {
+      const parts = cleanName.split(/[-_]/);
+      const reg = parts[1]?.toUpperCase() || 'ES';
+      const isNet = cleanName.toLowerCase().includes('network');
+      const isFem = cleanName.toLowerCase().includes('female') || cleanName.toLowerCase().includes('ana');
+      const isMasc = cleanName.toLowerCase().includes('male') || cleanName.toLowerCase().includes('vic');
+      const gender = isFem ? 'Femenina' : isMasc ? 'Masculina' : 'Natural';
+      cleanName = `Español (${reg}) - ${gender}${isNet ? ' HD' : ''}`;
+    }
 
     return {
       ...v,
