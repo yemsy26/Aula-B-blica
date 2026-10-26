@@ -2,6 +2,8 @@ import { TtsController, TtsState, TtsVoiceOption, TtsEngineMode } from './types.
 import { rankVoices, RankedVoiceOption } from './voiceRanker.js';
 import { cleanPhonetics, ProsodyChunker, ProsodyChunk } from './prosodyChunker.js';
 import { piperNeuralTts } from './piperNeuralTtsAdapter.js';
+import { Capacitor } from '@capacitor/core';
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 export class OfflineTtsService implements TtsController {
   private state: TtsState = {
@@ -16,16 +18,25 @@ export class OfflineTtsService implements TtsController {
 
   private onStateChangeListeners: ((state: TtsState) => void)[] = [];
   private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private activeUtterancesSet = new Set<SpeechSynthesisUtterance>();
   private activeChunks: ProsodyChunk[] = [];
   private activeChunkIndex: number = 0;
   private onPlaybackComplete?: () => void;
   private pauseTimeoutId: any = null;
+  private nativeLang: string = 'es-ES';
+  private nativeVoicesCache: RankedVoiceOption[] = [];
+  private playChunkRetryCount: number = 0;
 
   constructor() {
     this.initVoices();
   }
 
   private initVoices(): void {
+    if (Capacitor.isNativePlatform()) {
+      this.initNativeTts();
+      return;
+    }
+
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       const updateBestVoice = () => {
         const ranked = this.getVoices();
@@ -39,6 +50,38 @@ export class OfflineTtsService implements TtsController {
       window.speechSynthesis.onvoiceschanged = updateBestVoice;
       // Intento inmediato por si las voces ya están listas
       updateBestVoice();
+    }
+  }
+
+  private async initNativeTts(): Promise<void> {
+    try {
+      const res = await TextToSpeech.getSupportedLanguages();
+      if (res && res.languages) {
+        const preferred = res.languages.find(
+          (l) => /^es[-_]/i.test(l) || l.toLowerCase() === 'es'
+        );
+        if (preferred) {
+          this.nativeLang = preferred;
+        }
+      }
+
+      const voiceRes = await TextToSpeech.getSupportedVoices();
+      if (voiceRes && voiceRes.voices && voiceRes.voices.length > 0) {
+        const voiceOpts: TtsVoiceOption[] = voiceRes.voices.map((v: any, idx: number) => ({
+          voiceIndex: idx,
+          name: v.name || v.voiceURI || `Android Voice ${idx + 1}`,
+          lang: v.lang || this.nativeLang,
+          isDefault: !!v.default,
+          isLocalService: v.localService !== false,
+        }));
+        this.nativeVoicesCache = rankVoices(voiceOpts);
+        if (this.nativeVoicesCache.length > 0 && !this.state.selectedVoiceName) {
+          this.state.selectedVoiceName = this.nativeVoicesCache[0].name;
+        }
+        this.notifyState();
+      }
+    } catch (e) {
+      console.warn('[TTS Nativo] No se pudo inicializar voces nativas:', e);
     }
   }
 
@@ -68,6 +111,9 @@ export class OfflineTtsService implements TtsController {
    * Obtiene la lista de voces en español clasificadas y ordenadas por calidad humana (Tier 1 a Tier 3)
    */
   getVoices(): RankedVoiceOption[] {
+    if (Capacitor.isNativePlatform() && this.nativeVoicesCache.length > 0) {
+      return this.nativeVoicesCache;
+    }
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return [];
     }
@@ -160,6 +206,10 @@ export class OfflineTtsService implements TtsController {
       return;
     }
 
+    if (this.activeChunkIndex !== index) {
+      this.playChunkRetryCount = 0;
+    }
+
     const chunk = this.activeChunks[index];
     this.activeChunkIndex = index;
     this.state.currentChunkIndex = index;
@@ -167,15 +217,62 @@ export class OfflineTtsService implements TtsController {
     this.state.currentUtteranceText = chunk.text;
     this.notifyState();
 
+    // 1. En entorno Android/iOS nativo, utilizar el motor TTS nativo del sistema
+    if (Capacitor.isNativePlatform()) {
+      const rate = Math.min(Math.max(chunk.rate * this.state.rate, 0.6), 1.5);
+      const pitch = Math.min(Math.max(chunk.pitch * this.state.pitch, 0.7), 1.3);
+
+      TextToSpeech.speak({
+        text: chunk.text,
+        lang: this.nativeLang || 'es-ES',
+        rate,
+        pitch,
+        volume: 1.0,
+        category: 'playback',
+      })
+        .then(() => {
+          this.playChunkRetryCount = 0;
+          if (!this.state.isPlaying || this.state.isPaused) return;
+          this.pauseTimeoutId = setTimeout(() => {
+            if (this.state.isPlaying && !this.state.isPaused) {
+              this.playChunk(index + 1);
+            }
+          }, chunk.pauseAfterMs || 250);
+        })
+        .catch((err) => {
+          console.warn(`[TTS Nativo Android] Error en chunk ${index}:`, err);
+          if (!this.state.isPlaying || this.state.isPaused) return;
+          // Reintentar el mismo chunk si el servicio nativo aún estaba inicializándose
+          if (this.playChunkRetryCount < 2) {
+            this.playChunkRetryCount++;
+            this.pauseTimeoutId = setTimeout(() => {
+              if (this.state.isPlaying && !this.state.isPaused) {
+                this.playChunk(index);
+              }
+            }, 450);
+            return;
+          }
+          this.playChunkRetryCount = 0;
+          this.pauseTimeoutId = setTimeout(() => {
+            if (this.state.isPlaying && !this.state.isPaused) {
+              this.playChunk(index + 1);
+            }
+          }, 350);
+        });
+      return;
+    }
+
+    // 2. Simulación en entorno Node/Vitest
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      // Simulación en vitest / Node
       this.pauseTimeoutId = setTimeout(() => {
         this.playChunk(index + 1);
       }, 35);
       return;
     }
 
+    // 3. Entorno Navegador Web
     const utterance = new SpeechSynthesisUtterance(chunk.text);
+    utterance.lang = 'es-ES';
     // Aplicar modulación prosódica combinada con la velocidad elegida por el usuario
     utterance.rate = Math.min(Math.max(chunk.rate * this.state.rate, 0.6), 1.6);
     utterance.pitch = Math.min(Math.max(chunk.pitch * this.state.pitch, 0.7), 1.4);
@@ -193,7 +290,10 @@ export class OfflineTtsService implements TtsController {
       }
     }
 
+    this.activeUtterancesSet.add(utterance);
+
     utterance.onend = () => {
+      this.activeUtterancesSet.delete(utterance);
       // Pausa respiratoria natural antes del siguiente chunk
       this.pauseTimeoutId = setTimeout(() => {
         if (this.state.isPlaying && !this.state.isPaused) {
@@ -202,12 +302,23 @@ export class OfflineTtsService implements TtsController {
       }, chunk.pauseAfterMs || 250);
     };
 
-    utterance.onerror = () => {
-      // Continuar al siguiente chunk en caso de error en uno de ellos
-      this.playChunk(index + 1);
+    utterance.onerror = (e) => {
+      this.activeUtterancesSet.delete(utterance);
+      if (e.error === 'canceled' || e.error === 'interrupted') {
+        return;
+      }
+      console.warn('[Web SpeechSynthesis] Error:', e.error);
+      this.pauseTimeoutId = setTimeout(() => {
+        if (this.state.isPlaying && !this.state.isPaused) {
+          this.playChunk(index + 1);
+        }
+      }, 350);
     };
 
     this.currentUtterance = utterance;
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
     window.speechSynthesis.speak(utterance);
   }
 
@@ -217,6 +328,7 @@ export class OfflineTtsService implements TtsController {
     this.state.currentUtteranceText = undefined;
     this.activeChunks = [];
     this.activeChunkIndex = 0;
+    this.playChunkRetryCount = 0;
     this.notifyState();
 
     if (this.onPlaybackComplete) {
@@ -225,26 +337,34 @@ export class OfflineTtsService implements TtsController {
   }
 
   pause(): void {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.pause();
-    }
     if (this.pauseTimeoutId) {
       clearTimeout(this.pauseTimeoutId);
+      this.pauseTimeoutId = null;
+    }
+    if (Capacitor.isNativePlatform()) {
+      TextToSpeech.stop().catch(() => {});
+    } else if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.pause();
     }
     this.state.isPaused = true;
     this.notifyState();
   }
 
   resume(): void {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.resume();
-    }
+    if (!this.state.isPlaying) return;
     this.state.isPaused = false;
     this.notifyState();
 
-    // Si estaba pausado durante un intermedio de pausa
-    if (this.state.isPlaying && this.activeChunks.length > 0) {
-      this.playChunk(this.activeChunkIndex);
+    if (Capacitor.isNativePlatform()) {
+      if (this.activeChunks.length > 0) {
+        this.playChunk(this.activeChunkIndex);
+      }
+    } else if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      } else if (this.activeChunks.length > 0) {
+        this.playChunk(this.activeChunkIndex);
+      }
     }
   }
 
@@ -253,9 +373,15 @@ export class OfflineTtsService implements TtsController {
       clearTimeout(this.pauseTimeoutId);
       this.pauseTimeoutId = null;
     }
+    this.playChunkRetryCount = 0;
+    if (Capacitor.isNativePlatform()) {
+      TextToSpeech.stop().catch(() => {});
+    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
+    this.activeUtterancesSet.clear();
+    this.currentUtterance = null;
     piperNeuralTts.stop();
 
     this.state.isPlaying = false;
@@ -268,10 +394,18 @@ export class OfflineTtsService implements TtsController {
 
   nextChunk(): void {
     if (this.activeChunks.length === 0) return;
+    if (this.pauseTimeoutId) {
+      clearTimeout(this.pauseTimeoutId);
+      this.pauseTimeoutId = null;
+    }
+    this.playChunkRetryCount = 0;
+    if (Capacitor.isNativePlatform()) {
+      TextToSpeech.stop().catch(() => {});
+    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-    if (this.pauseTimeoutId) clearTimeout(this.pauseTimeoutId);
+    this.activeUtterancesSet.clear();
 
     const nextIdx = Math.min(this.activeChunkIndex + 1, this.activeChunks.length - 1);
     this.playChunk(nextIdx);
@@ -279,10 +413,18 @@ export class OfflineTtsService implements TtsController {
 
   previousChunk(): void {
     if (this.activeChunks.length === 0) return;
+    if (this.pauseTimeoutId) {
+      clearTimeout(this.pauseTimeoutId);
+      this.pauseTimeoutId = null;
+    }
+    this.playChunkRetryCount = 0;
+    if (Capacitor.isNativePlatform()) {
+      TextToSpeech.stop().catch(() => {});
+    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-    if (this.pauseTimeoutId) clearTimeout(this.pauseTimeoutId);
+    this.activeUtterancesSet.clear();
 
     const prevIdx = Math.max(this.activeChunkIndex - 1, 0);
     this.playChunk(prevIdx);
