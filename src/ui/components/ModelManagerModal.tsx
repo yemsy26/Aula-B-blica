@@ -97,7 +97,7 @@ export const ModelManagerModal: React.FC<ModelManagerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl max-h-[92vh] bg-nocturne-900 border border-nocturne-750 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-zinc-200">
         {/* Cabecera */}
         <div className="p-4 sm:p-5 border-b border-nocturne-800 flex items-center justify-between bg-nocturne-950/70">
@@ -116,7 +116,7 @@ export const ModelManagerModal: React.FC<ModelManagerModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-nocturne-800 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-nocturne-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -297,7 +297,7 @@ export const ModelManagerModal: React.FC<ModelManagerModalProps> = ({
 
           {/* Barra de Progreso Fraccionado (Chunks de 50MB) */}
           {progress && (
-            <div className="p-4 rounded-xl bg-black/40 border border-nocturne-750 space-y-3">
+            <div className="p-4 rounded-xl bg-nocturne-850/80 border border-nocturne-750 space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-zinc-300 flex items-center gap-1.5">
                   <DownloadCloud className="w-4 h-4 text-sacred-gold animate-bounce" />

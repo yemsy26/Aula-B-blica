@@ -170,7 +170,7 @@ Salmos,23,1,"Jehová es mi pastor; nada me faltará."`;
   });
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-3xl max-h-[92vh] bg-nocturne-900 border border-nocturne-750 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-zinc-200">
         
         {/* Cabecera Principal */}
@@ -182,7 +182,7 @@ Salmos,23,1,"Jehová es mi pastor; nada me faltará."`;
             <div>
               <h3 className="font-serif font-bold text-sm sm:text-base text-parchment-100 flex items-center gap-2">
                 <span>Biblioteca de Módulos Bíblicos</span>
-                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                   100% Offline
                 </span>
               </h3>
@@ -193,7 +193,7 @@ Salmos,23,1,"Jehová es mi pastor; nada me faltará."`;
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-nocturne-800 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-nocturne-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -260,7 +260,7 @@ Salmos,23,1,"Jehová es mi pastor; nada me faltará."`;
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors border cursor-pointer ${
                     filterCategory === 'ALL'
                       ? 'bg-sacred-gold text-nocturne-950 border-sacred-gold font-bold'
-                      : 'bg-nocturne-950 text-zinc-400 border-nocturne-800 hover:text-white'
+                      : 'bg-nocturne-950 text-zinc-400 border-nocturne-800 hover:text-zinc-900'
                   }`}
                 >
                   Todas las versiones
@@ -271,7 +271,7 @@ Salmos,23,1,"Jehová es mi pastor; nada me faltará."`;
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors border cursor-pointer ${
                     filterCategory === 'OPEN'
                       ? 'bg-emerald-500 text-nocturne-950 border-emerald-400 font-bold'
-                      : 'bg-nocturne-950 text-zinc-400 border-nocturne-800 hover:text-white'
+                      : 'bg-nocturne-950 text-zinc-400 border-nocturne-800 hover:text-zinc-900'
                   }`}
                 >
                   Dominio Público & Abiertas
@@ -282,7 +282,7 @@ Salmos,23,1,"Jehová es mi pastor; nada me faltará."`;
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors border cursor-pointer ${
                     filterCategory === 'PERSONAL'
                       ? 'bg-amber-500 text-nocturne-950 border-amber-400 font-bold'
-                      : 'bg-nocturne-950 text-zinc-400 border-nocturne-800 hover:text-white'
+                      : 'bg-nocturne-950 text-zinc-400 border-nocturne-800 hover:text-zinc-900'
                   }`}
                 >
                   Estudio Personal (Acción Directa)
@@ -497,14 +497,14 @@ Salmos,23,1,"Jehová es mi pastor; nada me faltará."`;
 
         {/* Modal Compacto de Consentimiento Legal para Categoría B */}
         {pendingConsentModule && (
-          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-150">
             <div className="max-w-md w-full bg-nocturne-900 border border-amber-500/40 rounded-2xl p-5 shadow-2xl space-y-4 text-zinc-200">
-              <div className="flex items-center gap-2.5 text-amber-400 font-bold text-sm">
+              <div className="flex items-center gap-2.5 text-amber-600 font-bold text-sm">
                 <Lock className="w-5 h-5 shrink-0" />
                 <h4>Aviso de Estudio Personal y Descargo Legal</h4>
               </div>
 
-              <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/20 text-xs text-amber-200/90 leading-relaxed font-sans">
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-950 leading-relaxed font-sans">
                 {LEGAL_DISCLAIMER_TEXT}
               </div>
 

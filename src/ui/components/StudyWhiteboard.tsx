@@ -227,7 +227,7 @@ export const StudyWhiteboard: React.FC<StudyWhiteboardProps> = ({
                   setIsEditing(false);
                   setIsMobileDetailView(false);
                 }}
-                className="md:hidden p-1.5 rounded-lg text-zinc-300 hover:text-white bg-nocturne-800 border border-nocturne-700 flex items-center gap-1 text-xs"
+                className="md:hidden p-1.5 rounded-lg text-zinc-300 hover:text-zinc-900 bg-nocturne-800 border border-nocturne-700 flex items-center gap-1 text-xs"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Volver</span>
@@ -314,7 +314,7 @@ export const StudyWhiteboard: React.FC<StudyWhiteboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsMobileDetailView(false)}
-                  className="md:hidden p-1.5 rounded-lg text-zinc-300 hover:text-white bg-nocturne-800 border border-nocturne-700 flex items-center gap-1 text-xs shrink-0"
+                  className="md:hidden p-1.5 rounded-lg text-zinc-300 hover:text-zinc-900 bg-nocturne-800 border border-nocturne-700 flex items-center gap-1 text-xs shrink-0"
                   title="Volver a lista"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
@@ -360,11 +360,11 @@ export const StudyWhiteboard: React.FC<StudyWhiteboardProps> = ({
 
                 <button
                   onClick={() => exportToWhatsApp(currentStudy)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-xs font-medium hover:bg-emerald-600/30 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold hover:bg-emerald-200 transition-colors"
                   title="Copiar con formato nativo optimizado para WhatsApp (*negritas*, > citas)"
                 >
                   {copiedStatus === 'whatsapp' ? (
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-700" />
                   ) : (
                     <Share2 className="w-3.5 h-3.5" />
                   )}
@@ -377,7 +377,7 @@ export const StudyWhiteboard: React.FC<StudyWhiteboardProps> = ({
                   title="Copiar Markdown puro"
                 >
                   {copiedStatus === 'markdown' ? (
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-700" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
@@ -386,7 +386,7 @@ export const StudyWhiteboard: React.FC<StudyWhiteboardProps> = ({
 
                 <button
                   onClick={() => window.print()}
-                  className="p-1.5 sm:p-2 rounded-lg bg-nocturne-800 text-zinc-300 hover:text-white transition-colors"
+                  className="p-1.5 sm:p-2 rounded-lg bg-nocturne-800 text-zinc-300 hover:text-zinc-900 transition-colors"
                   title="Imprimir / Exportar a PDF"
                 >
                   <Printer className="w-3.5 h-3.5" />

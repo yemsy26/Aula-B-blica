@@ -73,7 +73,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
       {isOpenMobile && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-md md:hidden animate-in fade-in duration-200"
         />
       )}
 
@@ -103,7 +103,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
             {onCloseMobile && (
               <button
                 onClick={onCloseMobile}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-nocturne-800 transition-colors md:hidden"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-nocturne-800 transition-colors md:hidden"
                 title="Cerrar menú"
               >
                 <X className="w-5 h-5" />
@@ -266,7 +266,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
               <BrainCircuit className="w-3.5 h-3.5" />
               <span>Memoria Evolutiva</span>
             </div>
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold">
               {userProfile.nivel_espiritual}
             </span>
           </div>
@@ -281,7 +281,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
                 onOpenModelManager?.();
                 onCloseMobile?.();
               }}
-              className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-mono transition-colors"
+              className="flex items-center gap-1 text-emerald-700 hover:text-emerald-800 font-mono font-bold transition-colors"
               title="Gestionar modelo On-Device GGUF"
             >
               <Database className="w-3 h-3 text-emerald-400" />

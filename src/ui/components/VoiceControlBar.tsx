@@ -155,7 +155,7 @@ export const VoiceControlBar: React.FC = () => {
             <button
               onClick={() => offlineTts.previousChunk()}
               title="Segmento anterior"
-              className="p-1.5 rounded-lg bg-nocturne-950 text-zinc-300 hover:text-white hover:bg-nocturne-800 transition-colors"
+              className="p-1.5 rounded-lg bg-nocturne-950 text-zinc-300 hover:text-zinc-900 hover:bg-nocturne-800 transition-colors"
             >
               <SkipBack className="w-3.5 h-3.5" />
             </button>
@@ -183,7 +183,7 @@ export const VoiceControlBar: React.FC = () => {
             <button
               onClick={() => offlineTts.nextChunk()}
               title="Segmento siguiente"
-              className="p-1.5 rounded-lg bg-nocturne-950 text-zinc-300 hover:text-white hover:bg-nocturne-800 transition-colors"
+              className="p-1.5 rounded-lg bg-nocturne-950 text-zinc-300 hover:text-zinc-900 hover:bg-nocturne-800 transition-colors"
             >
               <SkipForward className="w-3.5 h-3.5" />
             </button>

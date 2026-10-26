@@ -70,8 +70,8 @@ export const DailyBreadCard: React.FC<DailyBreadCardProps> = ({
             onClick={handleToggleVoice}
             className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg sm:rounded-xl border text-xs flex items-center gap-1 sm:gap-1.5 transition-all ${
               isPlayingAudio
-                ? 'bg-rose-950/60 border-rose-500/50 text-rose-300'
-                : 'bg-nocturne-800 border-nocturne-700 text-zinc-300 hover:text-white hover:border-sacred-gold/40'
+                ? 'bg-rose-100 border-rose-300 text-rose-800'
+                : 'bg-nocturne-800 border-nocturne-700 text-zinc-300 hover:text-zinc-900 hover:border-sacred-gold/40'
             }`}
             title={isPlayingAudio ? 'Detener voz' : 'Escuchar con voz offline'}
           >
@@ -101,7 +101,7 @@ export const DailyBreadCard: React.FC<DailyBreadCardProps> = ({
       </div>
 
       {/* Cita Bíblica Inmutable */}
-      <div className="mt-2.5 sm:mt-3 p-3 sm:p-3.5 rounded-xl bg-black/40 border-l-4 border-sacred-gold text-parchment-100 font-bible text-xs sm:text-sm italic leading-relaxed">
+      <div className="mt-2.5 sm:mt-3 p-3 sm:p-3.5 rounded-xl bg-amber-50/70 border-l-4 border-sacred-gold text-zinc-900 font-bible text-xs sm:text-sm italic leading-relaxed shadow-sm">
         <p>«{data.versiculoTexto}»</p>
         <div className="mt-1 text-right text-[11px] sm:text-xs font-sans not-italic text-sacred-gold font-medium">
           — {data.versiculoReferencia} ({data.version})

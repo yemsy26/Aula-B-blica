@@ -52,29 +52,12 @@ export const App: React.FC = () => {
   const [isWelcomeGuideOpen, setIsWelcomeGuideOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // Gestión de Atmósfera y Tema Visual (Luz Angelical por defecto)
-  const [theme, setTheme] = useState<'angelic' | 'vigilia'>(() => {
-    try {
-      const saved = localStorage.getItem('verbovivo_theme');
-      if (saved === 'vigilia') return 'vigilia';
-    } catch {}
-    return 'angelic';
-  });
-
+  // Asegurar tema claro angelical permanente sin clase dark residual
   useEffect(() => {
     try {
-      localStorage.setItem('verbovivo_theme', theme);
+      localStorage.removeItem('verbovivo_theme');
     } catch {}
-    const root = document.documentElement;
-    if (theme === 'vigilia') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, [theme]);
-
-  const handleToggleTheme = useCallback(() => {
-    setTheme((prev) => (prev === 'angelic' ? 'vigilia' : 'angelic'));
+    document.documentElement.classList.remove('dark');
   }, []);
 
   // Comprobar primer inicio para mostrar menú de bienvenida automáticamente
@@ -502,8 +485,6 @@ export const App: React.FC = () => {
             onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
             onOpenWelcomeGuide={() => setIsWelcomeGuideOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
-            theme={theme}
-            onToggleTheme={handleToggleTheme}
           />
         )}
 
@@ -582,8 +563,6 @@ export const App: React.FC = () => {
           setIsSettingsOpen(false);
           setIsWelcomeGuideOpen(true);
         }}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
       />
     </div>
   );

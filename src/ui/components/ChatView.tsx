@@ -15,7 +15,6 @@ import {
   Square,
   Menu,
   Sun,
-  Moon,
   HelpCircle,
   Settings,
   BookOpen,
@@ -45,8 +44,6 @@ interface ChatViewProps {
   onToggleMobileSidebar?: () => void;
   onOpenWelcomeGuide?: () => void;
   onOpenSettings?: () => void;
-  theme?: 'angelic' | 'vigilia';
-  onToggleTheme?: () => void;
 }
 
 const LEVEL_ACCENTS: Record<UserTheologicalLevel, {
@@ -55,19 +52,19 @@ const LEVEL_ACCENTS: Record<UserTheologicalLevel, {
   dotClass: string;
 }> = {
   Semilla: {
-    pillClass: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40',
-    focusClass: 'focus-within:border-emerald-500/60 focus-within:shadow-[0_0_25px_rgba(16,185,129,0.22)]',
-    dotClass: 'bg-emerald-500',
+    pillClass: 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-sm',
+    focusClass: 'focus-within:border-emerald-500/60 focus-within:shadow-[0_0_20px_rgba(16,185,129,0.18)]',
+    dotClass: 'bg-emerald-600',
   },
   Discipulo: {
-    pillClass: 'bg-sky-500/15 text-sky-900 dark:text-sky-300 border-sky-500/40',
-    focusClass: 'focus-within:border-sky-500/60 focus-within:shadow-[0_0_25px_rgba(2,132,199,0.22)]',
-    dotClass: 'bg-sky-500',
+    pillClass: 'bg-sky-50 text-sky-850 border-sky-300 shadow-sm',
+    focusClass: 'focus-within:border-sky-500/60 focus-within:shadow-[0_0_20px_rgba(2,132,199,0.18)]',
+    dotClass: 'bg-sky-600',
   },
   Maestro: {
-    pillClass: 'bg-amber-500/15 text-amber-950 dark:text-amber-300 border-amber-500/40',
-    focusClass: 'focus-within:border-amber-500/60 focus-within:shadow-[0_0_25px_rgba(217,119,6,0.22)]',
-    dotClass: 'bg-amber-500',
+    pillClass: 'bg-amber-50 text-amber-900 border-amber-300 shadow-sm',
+    focusClass: 'focus-within:border-amber-500/60 focus-within:shadow-[0_0_20px_rgba(217,119,6,0.18)]',
+    dotClass: 'bg-amber-600',
   },
 };
 
@@ -188,8 +185,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onToggleMobileSidebar,
   onOpenWelcomeGuide,
   onOpenSettings,
-  theme = 'angelic',
-  onToggleTheme,
 }) => {
   const [inputText, setInputText] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -301,28 +296,6 @@ export const ChatView: React.FC<ChatViewProps> = ({
           {/* Selector de Nivel Teológico */}
           <LevelSelector currentLevel={currentLevel} onChange={onChangeLevel} />
 
-          {/* Alternador Rápido de Tema (Luz Angelical ☀️ / Vigilia Nocturna 🌙) */}
-          {onToggleTheme && (
-            <button
-              type="button"
-              onClick={onToggleTheme}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-gradient-to-r from-nocturne-900 to-nocturne-850 hover:from-nocturne-850 hover:to-nocturne-800 border border-nocturne-800 hover:border-sacred-gold/40 text-zinc-300 hover:text-sacred-gold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
-              title={theme === 'angelic' ? 'Cambiar a Vigilia Nocturna (Oscuro)' : 'Cambiar a Luz Angelical (Luminoso)'}
-            >
-              {theme === 'angelic' ? (
-                <>
-                  <Sun className="w-4 h-4 text-amber-500" />
-                  <span className="hidden xl:inline text-[11px] font-medium">Luz Angelical</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-4 h-4 text-indigo-400" />
-                  <span className="hidden xl:inline text-[11px] font-medium">Vigilia</span>
-                </>
-              )}
-            </button>
-          )}
-
           {/* Botón Centralizado de Ajustes */}
           {onOpenSettings && (
             <button
@@ -404,14 +377,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <button
                       type="button"
                       onClick={() => handleQuickPrompt('quiero estudiar el libro de mateo que me recomiendas')}
-                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-white border border-nocturne-800 hover:border-sacred-gold/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
+                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-zinc-900 border border-nocturne-800 hover:border-sacred-gold/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
                     >
                       "Estudiar el libro de Mateo"
                     </button>
                     <button
                       type="button"
                       onClick={() => handleQuickPrompt('quiero estudiar la carta a los romanos')}
-                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-white border border-nocturne-800 hover:border-sacred-gold/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
+                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-zinc-900 border border-nocturne-800 hover:border-sacred-gold/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
                     >
                       "Carta a los Romanos"
                     </button>
@@ -420,21 +393,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
                 {/* 2. Consejería Pastoral */}
                 <div className="p-3 rounded-xl bg-nocturne-900/70 border border-nocturne-800 space-y-2">
-                  <span className="text-[10px] font-mono uppercase text-emerald-400 font-semibold flex items-center gap-1">
+                  <span className="text-[10px] font-mono uppercase text-emerald-700 font-semibold flex items-center gap-1">
                     🕊️ Consejería & Paz
                   </span>
                   <div className="space-y-1.5">
                     <button
                       type="button"
                       onClick={() => handleQuickPrompt('tengo mucha ansiedad y miedo por mi futuro que dice la biblia')}
-                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-white border border-nocturne-800 hover:border-emerald-500/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
+                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-zinc-900 border border-nocturne-800 hover:border-emerald-500/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
                     >
                       "Ansiedad y miedo al futuro"
                     </button>
                     <button
                       type="button"
                       onClick={() => handleQuickPrompt('xq dios permite q suframos tanto si nos ama?')}
-                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-white border border-nocturne-800 hover:border-emerald-500/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
+                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-zinc-900 border border-nocturne-800 hover:border-emerald-500/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
                     >
                       "¿Por qué sufrimos?"
                     </button>
@@ -443,21 +416,21 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
                 {/* 3. Exégesis y Raíces */}
                 <div className="p-3 rounded-xl bg-nocturne-900/70 border border-nocturne-800 space-y-2">
-                  <span className="text-[10px] font-mono uppercase text-indigo-400 font-semibold flex items-center gap-1">
+                  <span className="text-[10px] font-mono uppercase text-sky-700 font-semibold flex items-center gap-1">
                     🏛️ Exégesis & Raíces
                   </span>
                   <div className="space-y-1.5">
                     <button
                       type="button"
                       onClick={() => handleQuickPrompt('analiza el significado exegetico de bara H1254 en genesis 1:1')}
-                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-white border border-nocturne-800 hover:border-indigo-500/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
+                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-zinc-900 border border-nocturne-800 hover:border-sky-500/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
                     >
                       "Raíz bará H1254 (Génesis 1:1)"
                     </button>
                     <button
                       type="button"
                       onClick={() => handleQuickPrompt('explicame el pacto abrahamico y su relacion con cristo')}
-                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-white border border-nocturne-800 hover:border-indigo-500/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
+                      className="w-full p-2 rounded-lg bg-nocturne-950 hover:bg-nocturne-850 text-left text-[11px] text-zinc-300 hover:text-zinc-900 border border-nocturne-800 hover:border-sky-500/40 transition-colors block leading-tight active:scale-[0.99] cursor-pointer"
                     >
                       "Pacto Abrahámico y Cristo"
                     </button>
@@ -543,7 +516,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                         <button
                           type="button"
                           onClick={() => copyText(msg.id, msg.content)}
-                          className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-white transition-colors text-[10px] sm:text-[11px]"
+                          className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-zinc-900 transition-colors text-[10px] sm:text-[11px]"
                           title="Copiar texto"
                         >
                           {copiedId === msg.id ? (

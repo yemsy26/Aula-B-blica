@@ -121,7 +121,7 @@ export const StrongModal: React.FC<StrongModalProps> = ({ bibliaService, onToggl
           </div>
 
           {entry.etimologia && (
-            <div className="p-3 rounded-xl bg-black/30 border border-nocturne-800 text-xs text-zinc-400 flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-nocturne-850/80 border border-nocturne-800 text-xs text-zinc-400 flex items-center gap-2">
               <Layers className="w-4 h-4 text-sacred-gold shrink-0" />
               <span>
                 <strong>Etimología y Raíz:</strong> {entry.etimologia}

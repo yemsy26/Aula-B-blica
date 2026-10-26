@@ -14,8 +14,6 @@ import {
   Scroll,
   BookMarked,
   ShieldCheck,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { UserTheologicalLevel } from '../../core/shield/types.js';
 import { UserEvolutionProfile } from '../../core/database/usuarioMemoriaService.js';
@@ -35,8 +33,6 @@ interface SettingsModalProps {
   userProfile?: UserEvolutionProfile;
   onExportBackup: () => void;
   onOpenWelcomeGuide: () => void;
-  theme?: 'angelic' | 'vigilia';
-  onToggleTheme?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -53,8 +49,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   userProfile,
   onExportBackup,
   onOpenWelcomeGuide,
-  theme = 'angelic',
-  onToggleTheme,
 }) => {
   const [activeTab, setActiveTab] = useState<'theology' | 'voice' | 'brain' | 'memory'>('theology');
 
@@ -76,9 +70,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       subtitle: 'Básico · Gracia y Vida',
       desc: 'Respuestas directas con lenguaje cálido, ilustraciones cotidianas y aplicaciones prácticas para el creyente.',
       icon: Sprout,
-      selectedClass: 'border-emerald-500/60 bg-emerald-500/10 shadow-sm shadow-emerald-500/15',
-      titleClass: 'text-emerald-700 dark:text-emerald-300',
-      iconClass: 'text-emerald-600 dark:text-emerald-400',
+      selectedClass: 'border-emerald-500/60 bg-emerald-50 shadow-sm shadow-emerald-500/10',
+      titleClass: 'text-emerald-800 font-bold',
+      iconClass: 'text-emerald-700',
     },
     {
       id: 'Discipulo',
@@ -86,9 +80,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       subtitle: 'Intermedio · Verdad Celestial',
       desc: 'Análisis del contexto cultural, geográfico, cronología bíblica y conexiones doctrinales intertextuales.',
       icon: Scroll,
-      selectedClass: 'border-sky-500/60 bg-sky-500/10 shadow-sm shadow-sky-500/15',
-      titleClass: 'text-sky-800 dark:text-sky-300',
-      iconClass: 'text-sky-600 dark:text-sky-400',
+      selectedClass: 'border-sky-500/60 bg-sky-50 shadow-sm shadow-sky-500/10',
+      titleClass: 'text-sky-900 font-bold',
+      iconClass: 'text-sky-700',
     },
     {
       id: 'Maestro',
@@ -96,15 +90,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       subtitle: 'Profundo · Gloria Shejiná',
       desc: 'Exégesis de alta precisión con raíces en Hebreo y Griego Koiné (Strong), sintaxis original e historia de la redención.',
       icon: BookMarked,
-      selectedClass: 'border-amber-500/60 bg-amber-500/10 shadow-sm shadow-amber-500/15',
-      titleClass: 'text-amber-800 dark:text-amber-300',
-      iconClass: 'text-amber-600 dark:text-amber-400',
+      selectedClass: 'border-amber-500/60 bg-amber-50 shadow-sm shadow-amber-500/10',
+      titleClass: 'text-amber-950 font-bold',
+      iconClass: 'text-amber-800',
     },
   ];
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 select-none">
-      <div className="relative w-full max-w-2xl max-h-[92vh] bg-gradient-to-b from-nocturne-900 via-nocturne-900 to-nocturne-950 border border-nocturne-750 rounded-3xl shadow-2xl overflow-hidden flex flex-col text-zinc-200">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-5 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-200 select-none">
+      <div className="relative w-full max-w-2xl max-h-[92vh] bg-nocturne-900 border border-nocturne-750 rounded-3xl shadow-2xl overflow-hidden flex flex-col text-zinc-200">
         
         {/* Cabecera del Panel de Ajustes */}
         <div className="p-4 sm:p-5 border-b border-nocturne-800 flex items-center justify-between bg-nocturne-950/80 backdrop-blur-xl">
@@ -128,7 +122,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-nocturne-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-900 hover:bg-nocturne-800 transition-colors cursor-pointer"
             title="Cerrar ajustes"
           >
             <X className="w-5 h-5" />
@@ -196,60 +190,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* TAB 1: TEOLOGÍA & CANON */}
           {activeTab === 'theology' && (
             <div className="space-y-5">
-              {/* Sección 0: Atmósfera Visual Celestial */}
-              {onToggleTheme && (
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-sacred-gold uppercase font-mono tracking-wider">
-                    Atmósfera y Modo Visual
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => theme !== 'angelic' && onToggleTheme()}
-                      className={`p-3 rounded-2xl border transition-all flex items-center gap-3 cursor-pointer text-left ${
-                        theme === 'angelic'
-                          ? 'bg-amber-500/15 border-sacred-gold text-zinc-100 shadow-sm font-semibold'
-                          : 'bg-nocturne-950/60 border-nocturne-800 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
-                        <Sun className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold">Luz Angelical</span>
-                          {theme === 'angelic' && <Check className="w-3.5 h-3.5 text-sacred-gold" />}
-                        </div>
-                        <span className="block text-[10px] text-zinc-400">Blanco alabastro, claridad y luz serena</span>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => theme !== 'vigilia' && onToggleTheme()}
-                      className={`p-3 rounded-2xl border transition-all flex items-center gap-3 cursor-pointer text-left ${
-                        theme === 'vigilia'
-                          ? 'bg-indigo-500/15 border-indigo-500/60 text-zinc-100 shadow-sm font-semibold'
-                          : 'bg-nocturne-950/60 border-nocturne-800 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-                        <Moon className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold">Vigilia Nocturna</span>
-                          {theme === 'vigilia' && <Check className="w-3.5 h-3.5 text-indigo-400" />}
-                        </div>
-                        <span className="block text-[10px] text-zinc-400">Atmósfera oscura para oración de noche</span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Sección A: Nivel Teológico y Combinación Armónica */}
-              <div className="space-y-2.5 pt-2 border-t border-nocturne-800">
+              <div className="space-y-2.5">
                 <label className="block text-xs font-semibold text-sacred-gold uppercase font-mono tracking-wider">
                   Nivel de Exégesis y Armonía Ministerial
                 </label>

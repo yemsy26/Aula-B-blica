@@ -34,7 +34,7 @@ export const WelcomeGuideModal: React.FC<WelcomeGuideModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-slate-900/30 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-2xl max-h-[92vh] bg-nocturne-900 border border-nocturne-750 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-zinc-200">
         {/* Cabecera */}
         <div className="p-4 sm:p-5 border-b border-nocturne-800 flex items-center justify-between bg-nocturne-950/80">
@@ -45,7 +45,7 @@ export const WelcomeGuideModal: React.FC<WelcomeGuideModalProps> = ({
             <div>
               <h3 className="font-serif font-bold text-sm sm:text-base text-parchment-100 flex items-center gap-2">
                 <span>Guía de Bienvenida · VerboVivo</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 font-mono hidden sm:inline-block">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono hidden sm:inline-block">
                   100% Offline
                 </span>
               </h3>
@@ -56,7 +56,7 @@ export const WelcomeGuideModal: React.FC<WelcomeGuideModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-nocturne-800 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-nocturne-800 transition-colors"
             title="Cerrar guía"
           >
             <X className="w-5 h-5" />

@@ -35,8 +35,8 @@ export const CrisisBanner: React.FC<CrisisBannerProps> = ({ crisis, onDismiss })
       </p>
 
       {action.biblicalAnchors.length > 0 && (
-        <div className="mt-3 p-3 rounded-xl bg-black/30 border border-amber-500/20">
-          <p className="text-xs uppercase tracking-wider text-amber-400/90 font-medium mb-1.5 flex items-center gap-1.5">
+        <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-300/70">
+          <p className="text-xs uppercase tracking-wider text-amber-850 font-medium mb-1.5 flex items-center gap-1.5">
             <ShieldAlert className="w-3.5 h-3.5" />
             Anclas de Promesa y Refugio
           </p>
