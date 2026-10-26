@@ -36,11 +36,11 @@ export default {
           300: '#334155', // Texto secundario
           400: '#64748b', // Texto atenuado / subtítulos
           500: '#94a3b8', // Placeholder
-          600: '#cbd5e1',
-          700: '#e2e8f0',
-          800: '#f1f5f9',
-          900: '#f8fafc',
-          950: '#ffffff',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a', // Negro carbón / máxima legibilidad
+          950: '#020617', // Obsidiana profunda
         },
         sacred: {
           gold: '#b47b19',

@@ -101,9 +101,11 @@ export const DailyBreadCard: React.FC<DailyBreadCardProps> = ({
       </div>
 
       {/* Cita Bíblica Inmutable */}
-      <div className="mt-2.5 sm:mt-3 p-3 sm:p-3.5 rounded-xl bg-amber-50/70 border-l-4 border-sacred-gold text-zinc-900 font-bible text-xs sm:text-sm italic leading-relaxed shadow-sm">
-        <p>«{data.versiculoTexto}»</p>
-        <div className="mt-1 text-right text-[11px] sm:text-xs font-sans not-italic text-sacred-gold font-medium">
+      <div className="mt-2.5 sm:mt-3 p-3 sm:p-3.5 rounded-xl bg-amber-50/90 border-l-4 border-sacred-gold shadow-sm">
+        <p className="text-zinc-900 font-serif font-bold text-sm sm:text-base leading-relaxed">
+          «{data.versiculoTexto}»
+        </p>
+        <div className="mt-1.5 text-right text-[11px] sm:text-xs font-sans not-italic text-amber-900 font-bold">
           — {data.versiculoReferencia} ({data.version})
         </div>
       </div>
