@@ -23,6 +23,7 @@ export class OfflineTtsService implements TtsController {
   private activeChunkIndex: number = 0;
   private onPlaybackComplete?: () => void;
   private pauseTimeoutId: any = null;
+  private chunkTimeoutId: any = null;
   private nativeLang: string = 'es-ES';
   private nativeVoicesCache: RankedVoiceOption[] = [];
   private playChunkRetryCount: number = 0;
@@ -53,10 +54,10 @@ export class OfflineTtsService implements TtsController {
     }
   }
 
-  private async initNativeTts(): Promise<void> {
+  private async initNativeTts(retries = 6, delayMs = 400): Promise<void> {
     try {
       const res = await TextToSpeech.getSupportedLanguages();
-      if (res && res.languages) {
+      if (res && res.languages && res.languages.length > 0) {
         const preferred = res.languages.find(
           (l) => /^es[-_]/i.test(l) || l.toLowerCase() === 'es'
         );
@@ -90,9 +91,18 @@ export class OfflineTtsService implements TtsController {
           this.state.selectedVoiceName = this.nativeVoicesCache[0].name;
         }
         this.notifyState();
+        return;
+      }
+
+      if (retries > 0) {
+        setTimeout(() => this.initNativeTts(retries - 1, Math.min(delayMs * 1.5, 2000)), delayMs);
       }
     } catch (e) {
-      console.warn('[TTS Nativo] No se pudo inicializar voces nativas:', e);
+      if (retries > 0) {
+        setTimeout(() => this.initNativeTts(retries - 1, Math.min(delayMs * 1.5, 2000)), delayMs);
+      } else {
+        console.warn('[TTS Nativo] No se pudo inicializar voces nativas:', e);
+      }
     }
   }
 
@@ -122,8 +132,12 @@ export class OfflineTtsService implements TtsController {
    * Obtiene la lista de voces en español clasificadas y ordenadas por calidad humana (Tier 1 a Tier 3)
    */
   getVoices(): RankedVoiceOption[] {
-    if (Capacitor.isNativePlatform() && this.nativeVoicesCache.length > 0) {
-      return this.nativeVoicesCache;
+    if (Capacitor.isNativePlatform()) {
+      if (this.nativeVoicesCache.length > 0) {
+        return this.nativeVoicesCache;
+      }
+      this.initNativeTts();
+      return [];
     }
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       return [];
@@ -199,6 +213,11 @@ export class OfflineTtsService implements TtsController {
       return;
     }
 
+    if (this.chunkTimeoutId) {
+      clearTimeout(this.chunkTimeoutId);
+      this.chunkTimeoutId = null;
+    }
+
     if (this.activeChunkIndex !== index) {
       this.playChunkRetryCount = 0;
     }
@@ -247,14 +266,21 @@ export class OfflineTtsService implements TtsController {
         category: 'playback',
       });
 
-      // Máximo tiempo de espera prudente para evitar que un chunk colgado congele la app
-      const maxTimeoutMs = Math.max(chunk.text.length * 160, 10000);
+      // Máximo tiempo de espera prudente (45s) para evitar que un cuelgue del sistema congele la app
+      const maxTimeoutMs = Math.max(chunk.text.length * 400, 45000);
       const timeoutPromise = new Promise<void>((_, reject) => {
-        setTimeout(() => reject(new Error('TTS_CHUNK_TIMEOUT')), maxTimeoutMs);
+        this.chunkTimeoutId = setTimeout(() => {
+          this.chunkTimeoutId = null;
+          reject(new Error('TTS_CHUNK_TIMEOUT'));
+        }, maxTimeoutMs);
       });
 
       Promise.race([speakPromise, timeoutPromise])
         .then(() => {
+          if (this.chunkTimeoutId) {
+            clearTimeout(this.chunkTimeoutId);
+            this.chunkTimeoutId = null;
+          }
           this.playChunkRetryCount = 0;
           if (!this.state.isPlaying || this.state.isPaused) return;
           this.pauseTimeoutId = setTimeout(() => {
@@ -264,8 +290,15 @@ export class OfflineTtsService implements TtsController {
           }, chunk.pauseAfterMs || 250);
         })
         .catch((err) => {
+          if (this.chunkTimeoutId) {
+            clearTimeout(this.chunkTimeoutId);
+            this.chunkTimeoutId = null;
+          }
           console.warn(`[TTS Nativo Android] Error o reconexión en chunk ${index}:`, err);
           if (!this.state.isPlaying || this.state.isPaused) return;
+          // Si el índice actual ya avanzó o cambió, ignorar evento antiguo
+          if (this.activeChunkIndex !== index) return;
+
           // Reintentar el mismo chunk con espera suficiente para reconexión de DeadObject/rebind (1.4s)
           if (this.playChunkRetryCount < 3) {
             this.playChunkRetryCount++;
@@ -347,6 +380,10 @@ export class OfflineTtsService implements TtsController {
   }
 
   private finishPlayback(): void {
+    if (this.chunkTimeoutId) {
+      clearTimeout(this.chunkTimeoutId);
+      this.chunkTimeoutId = null;
+    }
     this.state.isPlaying = false;
     this.state.isPaused = false;
     this.state.currentUtteranceText = undefined;
@@ -361,6 +398,10 @@ export class OfflineTtsService implements TtsController {
   }
 
   pause(): void {
+    if (this.chunkTimeoutId) {
+      clearTimeout(this.chunkTimeoutId);
+      this.chunkTimeoutId = null;
+    }
     if (this.pauseTimeoutId) {
       clearTimeout(this.pauseTimeoutId);
       this.pauseTimeoutId = null;
@@ -393,6 +434,10 @@ export class OfflineTtsService implements TtsController {
   }
 
   stop(): void {
+    if (this.chunkTimeoutId) {
+      clearTimeout(this.chunkTimeoutId);
+      this.chunkTimeoutId = null;
+    }
     if (this.pauseTimeoutId) {
       clearTimeout(this.pauseTimeoutId);
       this.pauseTimeoutId = null;
@@ -418,6 +463,10 @@ export class OfflineTtsService implements TtsController {
 
   nextChunk(): void {
     if (this.activeChunks.length === 0) return;
+    if (this.chunkTimeoutId) {
+      clearTimeout(this.chunkTimeoutId);
+      this.chunkTimeoutId = null;
+    }
     if (this.pauseTimeoutId) {
       clearTimeout(this.pauseTimeoutId);
       this.pauseTimeoutId = null;
@@ -437,6 +486,10 @@ export class OfflineTtsService implements TtsController {
 
   previousChunk(): void {
     if (this.activeChunks.length === 0) return;
+    if (this.chunkTimeoutId) {
+      clearTimeout(this.chunkTimeoutId);
+      this.chunkTimeoutId = null;
+    }
     if (this.pauseTimeoutId) {
       clearTimeout(this.pauseTimeoutId);
       this.pauseTimeoutId = null;
