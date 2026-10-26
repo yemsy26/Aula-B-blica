@@ -145,7 +145,7 @@ export const WelcomeGuideModal: React.FC<WelcomeGuideModalProps> = ({
                 <div className="p-3.5 rounded-xl bg-nocturne-950 border border-nocturne-800">
                   <div className="flex items-center gap-2 text-sacred-gold font-semibold text-xs mb-1">
                     <Sun className="w-4 h-4" />
-                    <span>4. Pan Diario (Botón ☀️)</span>
+                    <span>4. Plan Diario (Botón ☀️)</span>
                   </div>
                   <p className="text-[11px] text-zinc-400 leading-relaxed">
                     Devocional matutino personalizado según tu historial espiritual. Puedes escucharlo con el reproductor de voz offline.

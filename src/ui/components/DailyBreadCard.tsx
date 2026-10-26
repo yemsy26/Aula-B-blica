@@ -38,7 +38,7 @@ export const DailyBreadCard: React.FC<DailyBreadCardProps> = ({
       offlineTts.stop();
       setIsPlayingAudio(false);
     } else {
-      const speechText = `Pan Diario para hoy. ${data.temaRelacionado}. ${data.versiculoReferencia}. ${data.versiculoTexto}. Reflexión: ${data.reflexionPastoral}. Pregunta para tu día: ${data.preguntaDelDia}`;
+      const speechText = `Plan Diario para hoy. ${data.temaRelacionado}. ${data.versiculoReferencia}. ${data.versiculoTexto}. Reflexión: ${data.reflexionPastoral}. Pregunta para tu día: ${data.preguntaDelDia}`;
       offlineTts.speak(speechText, () => {
         setIsPlayingAudio(false);
       });
@@ -57,7 +57,7 @@ export const DailyBreadCard: React.FC<DailyBreadCardProps> = ({
           <div className="min-w-0">
             <span className="text-[9px] sm:text-[10px] uppercase font-mono tracking-widest text-sacred-gold font-semibold flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
-              Pan Diario Personalizado
+              Plan Diario Personalizado
             </span>
             <h3 className="text-xs sm:text-sm font-serif font-bold text-parchment-100 leading-tight truncate">
               {data.temaRelacionado}
@@ -92,7 +92,7 @@ export const DailyBreadCard: React.FC<DailyBreadCardProps> = ({
             <button
               onClick={onDismiss}
               className="p-1.5 text-zinc-400 hover:text-zinc-200 rounded-lg hover:bg-nocturne-800 transition-colors"
-              title="Cerrar devocional"
+              title="Cerrar plan diario"
             >
               <X className="w-4 h-4" />
             </button>
@@ -101,30 +101,68 @@ export const DailyBreadCard: React.FC<DailyBreadCardProps> = ({
       </div>
 
       {/* Cita Bíblica Inmutable */}
-      <div className="mt-2.5 sm:mt-3 p-3 sm:p-3.5 rounded-xl bg-amber-50/90 border-l-4 border-sacred-gold shadow-sm">
-        <p className="text-zinc-900 font-serif font-bold text-sm sm:text-base leading-relaxed">
+      <div
+        className="mt-2.5 sm:mt-3 p-3.5 sm:p-4 rounded-xl border-l-4 shadow-sm"
+        style={{
+          backgroundColor: '#fffbeb',
+          borderLeftColor: '#b47b19',
+        }}
+      >
+        <p
+          className="font-serif font-bold text-sm sm:text-base leading-relaxed not-italic"
+          style={{
+            color: '#0f172a',
+          }}
+        >
           «{data.versiculoTexto}»
         </p>
-        <div className="mt-1.5 text-right text-[11px] sm:text-xs font-sans not-italic text-amber-900 font-bold">
+        <div
+          className="mt-1.5 text-right text-[11px] sm:text-xs font-sans not-italic font-bold"
+          style={{
+            color: '#78350f',
+          }}
+        >
           — {data.versiculoReferencia} ({data.version})
         </div>
       </div>
 
       {/* Reflexión y Pregunta */}
       <div className="mt-2.5 sm:mt-3 grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 text-[11px] sm:text-xs">
-        <div className="p-2.5 sm:p-3 rounded-xl bg-nocturne-950/70 border border-nocturne-800 text-zinc-300 leading-relaxed font-sans">
-          <span className="block text-[9px] sm:text-[10px] uppercase font-mono tracking-wider text-zinc-400 mb-1">
+        <div
+          className="p-3 rounded-xl border leading-relaxed font-sans"
+          style={{
+            backgroundColor: '#ffffff',
+            borderColor: '#e2e8f0',
+            color: '#1e293b',
+          }}
+        >
+          <span
+            className="block text-[10px] uppercase font-mono tracking-wider mb-1 font-semibold"
+            style={{ color: '#475569' }}
+          >
             Reflexión Pastoral
           </span>
           {data.reflexionPastoral}
         </div>
 
-        <div className="p-2.5 sm:p-3 rounded-xl bg-nocturne-950/70 border border-nocturne-800 text-zinc-300 leading-relaxed font-sans flex flex-col justify-between">
+        <div
+          className="p-3 rounded-xl border leading-relaxed font-sans flex flex-col justify-between"
+          style={{
+            backgroundColor: '#ffffff',
+            borderColor: '#e2e8f0',
+            color: '#1e293b',
+          }}
+        >
           <div>
-            <span className="text-[9px] sm:text-[10px] uppercase font-mono tracking-wider text-sacred-gold mb-1 flex items-center gap-1">
+            <span
+              className="text-[10px] uppercase font-mono tracking-wider mb-1 flex items-center gap-1 font-semibold"
+              style={{ color: '#b47b19' }}
+            >
               <HelpCircle className="w-3 h-3" /> Pregunta del Día
             </span>
-            <p className="italic text-zinc-200">{data.preguntaDelDia}</p>
+            <p className="italic font-medium" style={{ color: '#0f172a' }}>
+              {data.preguntaDelDia}
+            </p>
           </div>
 
           <div className="pt-2 text-right">

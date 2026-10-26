@@ -274,9 +274,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
           </div>
         </div>
 
-        {/* Acciones de Cabecera: Pan Diario, Nivel Teológico y Ajustes */}
+        {/* Acciones de Cabecera: Plan Diario, Nivel Teológico y Ajustes */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Alternador de Pan Diario */}
+          {/* Alternador de Plan Diario */}
           {dailyBreadData && (
             <button
               type="button"
@@ -286,10 +286,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   ? 'bg-sacred-gold/20 border-sacred-gold/50 text-sacred-gold-light'
                   : 'bg-nocturne-900 border-nocturne-800 text-zinc-400 hover:text-zinc-200'
               }`}
-              title={showDailyBread ? 'Ocultar Pan Diario' : 'Mostrar Pan Diario'}
+              title={showDailyBread ? 'Ocultar Plan Diario' : 'Mostrar Plan Diario'}
             >
               <Sun className="w-3.5 h-3.5 text-sacred-gold shrink-0" />
-              <span className="hidden xl:inline text-[11px] font-medium">Pan Diario</span>
+              <span className="hidden xl:inline text-[11px] font-medium">Plan Diario</span>
             </button>
           )}
 
