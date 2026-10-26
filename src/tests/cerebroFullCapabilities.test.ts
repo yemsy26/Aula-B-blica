@@ -3,10 +3,7 @@ import { selectAdaptiveModel, AVAILABLE_MODELS } from '../core/inference/modelRe
 import { ChunkedDownloader } from '../core/inference/chunkedDownloader.js';
 import { LocalDeterministicEngine } from '../core/inference/localEngine.js';
 import { processShield } from '../core/shield/index.js';
-import { rewriteTheologicalIntent } from '../core/rag/queryRewriter.js';
 import { UserEvolutionProfile } from '../core/database/usuarioMemoriaService.js';
-import { findBiblicalMirror } from '../core/rag/casuistryMapper.js';
-import { findCanonicalBook } from '../core/database/canonicalBooks.js';
 
 describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', () => {
   const engine = new LocalDeterministicEngine();
@@ -411,20 +408,17 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
   describe('7. Integración de Memoria Evolutiva del Usuario', () => {
     it('debe entrelazar el tema previamente estudiado cuando el usuario hace una nueva consulta', async () => {
       const mockProfile: UserEvolutionProfile = {
-        total_consultas: 5,
-        nivel_actual: 'Discipulo',
+        nivel_espiritual: 'Discipulo',
+        tono_preferido: 'pastoral_calido',
         temas_estudiados: [
           {
             tema: 'Pacto Abrahámico',
-            conteo: 3,
-            primera_fecha: '2026-10-01',
-            ultima_fecha: '2026-10-25',
+            fecha: '2026-10-25',
+            count: 3,
           },
         ],
-        versiculos_recurrentes: ['Génesis 15:6'],
-        autores_preferidos: ['Pablo'],
-        progreso_fe_notas: 'Creciendo en comprensión de pactos',
-        crisis_detectadas_historico: 0,
+        dudas_pendientes: [],
+        resumen_madurez: 'Creciendo en comprensión de pactos',
       };
 
       const response = await engine.generate(
