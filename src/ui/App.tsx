@@ -32,7 +32,7 @@ import { ModelManagerModal } from './components/ModelManagerModal.js';
 import { BibleImporterModal } from './components/BibleImporterModal.js';
 import { WelcomeGuideModal } from './components/WelcomeGuideModal.js';
 import { VoiceControlBar } from './components/VoiceControlBar.js';
-import { Loader2, Menu, MessageSquare, BookOpen, Sparkles, Plus } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -451,125 +451,47 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Contenedor Principal: Vista Activa + Barra de Navegación Inferior en Móvil */}
-      <div className="flex-1 h-full flex flex-col min-w-0 overflow-hidden">
-        {/* Vista Principal */}
-        <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {activeTab === 'chat' && (
-            <ChatView
-              chat={activeChat}
-              onSendMessage={handleSendMessage}
-              currentLevel={currentLevel}
-              onChangeLevel={handleChangeLevel}
-              onPinToStudy={handlePinToStudy}
-              lastShieldResult={lastShieldResult}
-              isGenerating={isGenerating}
-              streamingText={streamingText}
-              ragVersesCount={ragVersesCount}
-              onOpenModelManager={() => setIsModelModalOpen(true)}
-              activeBibleVersion={activeBibleVersion}
-              availableVersions={availableVersions}
-              onSelectBibleVersion={handleSelectBibleVersion}
-              onOpenBibleImporter={() => setIsImporterOpen(true)}
-              dailyBreadData={dailyBreadData}
-              onStartStudyFromVerse={handleStartStudyFromVerse}
-              onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
-              onOpenWelcomeGuide={() => setIsWelcomeGuideOpen(true)}
-            />
-          )}
+      {/* Vista Principal */}
+      <main className="flex-1 h-full flex flex-col overflow-hidden">
+        {activeTab === 'chat' && (
+          <ChatView
+            chat={activeChat}
+            onSendMessage={handleSendMessage}
+            currentLevel={currentLevel}
+            onChangeLevel={handleChangeLevel}
+            onPinToStudy={handlePinToStudy}
+            lastShieldResult={lastShieldResult}
+            isGenerating={isGenerating}
+            streamingText={streamingText}
+            ragVersesCount={ragVersesCount}
+            onOpenModelManager={() => setIsModelModalOpen(true)}
+            activeBibleVersion={activeBibleVersion}
+            availableVersions={availableVersions}
+            onSelectBibleVersion={handleSelectBibleVersion}
+            onOpenBibleImporter={() => setIsImporterOpen(true)}
+            dailyBreadData={dailyBreadData}
+            onStartStudyFromVerse={handleStartStudyFromVerse}
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+            onOpenWelcomeGuide={() => setIsWelcomeGuideOpen(true)}
+          />
+        )}
 
-          {activeTab === 'whiteboard' && (
-            <StudyWhiteboard
-              studies={studies}
-              onSaveStudy={handleSaveStudy}
-              onDeleteStudy={handleDeleteStudy}
-              onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
-            />
-          )}
+        {activeTab === 'whiteboard' && (
+          <StudyWhiteboard
+            studies={studies}
+            onSaveStudy={handleSaveStudy}
+            onDeleteStudy={handleDeleteStudy}
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+          />
+        )}
 
-          {activeTab === 'strong' && bibliaService && (
-            <StrongModal
-              bibliaService={bibliaService}
-              onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
-            />
-          )}
-        </main>
-
-        {/* Barra Inferior de Navegación Móvil (Siempre accesible para alternar Chat, Pizarra, Strong, Historial y Nuevo Chat) */}
-        <nav className="md:hidden h-14 bg-nocturne-950/95 border-t border-nocturne-800 backdrop-blur-md shrink-0 flex items-center justify-around px-2 z-30 select-none">
-          <button
-            type="button"
-            onClick={() => setIsMobileSidebarOpen(true)}
-            className="flex flex-col items-center justify-center gap-1 text-zinc-400 hover:text-sacred-gold active:text-sacred-gold py-1 px-3 rounded-lg active:scale-95 transition-all cursor-pointer"
-            title="Abrir historial de consultas y menú"
-          >
-            <Menu className="w-4 h-4 text-sacred-gold" />
-            <span className="text-[10px] font-medium leading-none">Historial</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('chat');
-              setIsMobileSidebarOpen(false);
-            }}
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-lg active:scale-95 transition-all cursor-pointer ${
-              activeTab === 'chat'
-                ? 'text-sacred-gold font-semibold'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span className="text-[10px] font-medium leading-none">Chat</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('whiteboard');
-              setIsMobileSidebarOpen(false);
-            }}
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-lg active:scale-95 transition-all cursor-pointer ${
-              activeTab === 'whiteboard'
-                ? 'text-sacred-gold font-semibold'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span className="text-[10px] font-medium leading-none">Pizarra</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('strong');
-              setIsMobileSidebarOpen(false);
-            }}
-            className={`flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-lg active:scale-95 transition-all cursor-pointer ${
-              activeTab === 'strong'
-                ? 'text-sacred-gold font-semibold'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span className="text-[10px] font-medium leading-none">Strong</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              handleCreateNewChat();
-              setActiveTab('chat');
-              setIsMobileSidebarOpen(false);
-            }}
-            className="flex flex-col items-center justify-center gap-1 text-sacred-gold bg-sacred-gold/15 border border-sacred-gold/30 py-1 px-3 rounded-lg active:scale-95 transition-all shadow-sm cursor-pointer"
-            title="Iniciar nueva consulta"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="text-[10px] font-semibold leading-none">Nuevo</span>
-          </button>
-        </nav>
-      </div>
+        {activeTab === 'strong' && bibliaService && (
+          <StrongModal
+            bibliaService={bibliaService}
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+          />
+        )}
+      </main>
 
       {/* Mini-Panel de Control de Voz Neural HD y Prosodia */}
       <VoiceControlBar />

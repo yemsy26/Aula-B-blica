@@ -155,13 +155,14 @@ export const StudyWhiteboard: React.FC<StudyWhiteboardProps> = ({
               <button
                 type="button"
                 onClick={onToggleMobileSidebar}
-                className="md:hidden p-1.5 rounded-lg bg-nocturne-800 hover:bg-nocturne-750 text-zinc-300 hover:text-white border border-nocturne-700 transition-colors"
-                title="Abrir menú"
+                className="md:hidden px-2.5 py-1.5 rounded-xl bg-sacred-gold/15 hover:bg-sacred-gold/25 text-sacred-gold border border-sacred-gold/30 transition-all flex items-center gap-1.5 shrink-0 shadow-sm active:scale-95 cursor-pointer"
+                title="Abrir historial de conversaciones y menú"
               >
                 <Menu className="w-4 h-4" />
+                <span className="text-xs font-semibold">Menú</span>
               </button>
             )}
-            <BookOpen className="w-4 h-4 text-sacred-gold" />
+            <BookOpen className="w-4 h-4 text-sacred-gold shrink-0" />
             <h2 className="text-xs sm:text-sm font-semibold tracking-wide text-parchment-100">
               Pizarra de Estudio
             </h2>
