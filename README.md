@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-amber.svg)](LICENSE)
 [![Engine: Node.js >=18](https://img.shields.io/badge/Node.js-%3E%3D18.0.0-emerald.svg)](https://nodejs.org/)
 [![Database: SQLite WASM](https://img.shields.io/badge/Database-SQLite%20(WASM)-blue.svg)](https://sql.js.org/)
-[![Tests: 129 Passing](https://img.shields.io/badge/Tests-129%2F129%20Passed-brightgreen.svg)]()
+[![Tests: 131 Passing](https://img.shields.io/badge/Tests-131%2F131%20Passed-brightgreen.svg)]()
 [![Platform: PWA / Web / Android](https://img.shields.io/badge/Platform-PWA%20%7C%20Android%20(Capacitor)-indigo.svg)]()
 
 ---
@@ -84,6 +84,11 @@ A diferencia de las herramientas convencionales basadas en APIs externas o servi
     - Registro local del progreso teológico del usuario comprimido a menos de 300 palabras para optimizar el contexto.
     - Generación de respaldos completos en formato JSON con firma de integridad SHA-256 para migración entre dispositivos.
 
+11. **Persistencia Binaria SQLite Anti-Recarga (Garantía F5 / Actualización):**
+    - Sincronización automática de las bases de datos `biblia_core.sqlite` y `usuario_memoria.sqlite` con almacenamiento persistente privado (IndexedDB en navegadores web y sistema de archivos privado en Capacitor/Android).
+    - Preserva conversaciones, notas de estudio, libros/versiones importadas y perfiles evolutivos entre recargas de página o cierres de sesión.
+    - Registro persistente de cerebros IA descargados para activación directa sin re-descargas.
+
 ---
 
 ### Límites Técnicos y Operativos (Lo que el sistema NO hace)
@@ -129,7 +134,7 @@ Abre tu navegador en `http://localhost:5173` para comenzar a utilizar la aplicac
 | Comando | Acción |
 | :--- | :--- |
 | `npm run dev` | Inicia el entorno de desarrollo local con recarga en caliente (Vite HMR). |
-| `npm test` | Ejecuta la suite completa de 129 pruebas unitarias con Vitest. |
+| `npm test` | Ejecuta la suite completa de 131 pruebas unitarias con Vitest. |
 | `npm run build` | Compila TypeScript y empaqueta la aplicación web para producción en `dist/`. |
 | `npm run preview` | Previsualiza localmente el paquete de producción generado. |
 
@@ -183,7 +188,7 @@ verbovivo/
 │   │   ├── shield/         # Escudo limpiador, normalizador dialectal y detector de crisis
 │   │   ├── tts/            # Motor de síntesis de voz offline, prosodia y ranking neural
 │   │   └── utils/          # Utilidades seguras de portapapeles y formato
-│   ├── tests/              # 129 pruebas unitarias automatizadas con Vitest
+│   ├── tests/              # 131 pruebas unitarias automatizadas con Vitest
 │   └── ui/                 # Componentes React 19, vistas responsive y estilos Tailwind
 ├── capacitor.config.ts     # Configuración para Android / Capacitor
 ├── CONTRIBUTING.md         # Normas de contribución para la comunidad

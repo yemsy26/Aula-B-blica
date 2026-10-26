@@ -55,6 +55,10 @@ export class UsuarioMemoriaService {
     this.db = db;
   }
 
+  getDatabaseAdapter(): DatabaseAdapter {
+    return this.db;
+  }
+
   /**
    * Inicializa las tablas del esquema de memoria de usuario
    */

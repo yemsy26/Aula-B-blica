@@ -45,6 +45,14 @@ export const ModelManagerModal: React.FC<ModelManagerModalProps> = ({
   const [serverEndpoint, setServerEndpoint] = useState(realModelBridge.getServerConfig().endpoint);
   const [serverModel, setServerModel] = useState(realModelBridge.getServerConfig().modelName);
   const [pingStatus, setPingStatus] = useState<'IDLE' | 'CHECKING' | 'CONNECTED' | 'DISCONNECTED'>('IDLE');
+  const [installedModels, setInstalledModels] = useState<ModelProfileId[]>(() => {
+    try {
+      const raw = localStorage.getItem('verbovivo_installed_models');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const handleTestPing = async () => {
     setPingStatus('CHECKING');
@@ -80,6 +88,11 @@ export const ModelManagerModal: React.FC<ModelManagerModalProps> = ({
     setDownloader(dl);
     const success = await dl.start();
     if (success) {
+      const updated = Array.from(new Set([...installedModels, selectedModel.id]));
+      setInstalledModels(updated);
+      try {
+        localStorage.setItem('verbovivo_installed_models', JSON.stringify(updated));
+      } catch {}
       onModelActivated(selectedModel.id);
     }
   };
@@ -312,6 +325,11 @@ export const ModelManagerModal: React.FC<ModelManagerModalProps> = ({
                             ACTIVO
                           </span>
                         )}
+                        {installedModels.includes(m.id) && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 font-mono flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" /> DESCARGADO OFFLINE
+                          </span>
+                        )}
                         {isRecommended && (
                           <span className="text-[10px] px-2 py-0.5 rounded-full bg-sacred-gold/20 text-sacred-gold border border-sacred-gold/40 font-semibold flex items-center gap-1">
                             <Sparkles className="w-3 h-3" /> ÓPTIMO PARA TU EQUIPO
@@ -444,7 +462,31 @@ export const ModelManagerModal: React.FC<ModelManagerModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {!progress || progress.status === 'IDLE' ? (
+            {installedModels.includes(selectedModel.id) && (!progress || progress.status === 'IDLE' || progress.status === 'COMPLETED') ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    onModelActivated(selectedModel.id);
+                    onClose();
+                  }}
+                  className={`flex items-center gap-1.5 px-4 py-2 font-bold text-xs rounded-xl transition-all shadow-md ${
+                    activeModelId === selectedModel.id
+                      ? 'bg-emerald-700 text-white cursor-default'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{activeModelId === selectedModel.id ? 'Cerebro Activo' : 'Activar Cerebro'}</span>
+                </button>
+                <button
+                  onClick={handleStartDownload}
+                  className="px-2.5 py-2 text-[11px] text-zinc-400 hover:text-zinc-200 transition-colors"
+                  title="Volver a descargar bloques"
+                >
+                  Re-descargar
+                </button>
+              </div>
+            ) : !progress || progress.status === 'IDLE' ? (
               <button
                 onClick={handleStartDownload}
                 className={`flex items-center gap-2 px-4 py-2 font-bold text-xs rounded-xl transition-all shadow-md ${
@@ -462,10 +504,14 @@ export const ModelManagerModal: React.FC<ModelManagerModalProps> = ({
               </button>
             ) : progress.status === 'COMPLETED' ? (
               <button
-                onClick={onClose}
-                className="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-500 transition-colors"
+                onClick={() => {
+                  onModelActivated(selectedModel.id);
+                  onClose();
+                }}
+                className="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl hover:bg-emerald-500 transition-colors flex items-center gap-1.5"
               >
-                Listo para Usar 100% Offline
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Listo para Usar 100% Offline</span>
               </button>
             ) : null}
           </div>

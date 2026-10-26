@@ -7,6 +7,7 @@ import { DynamicTheologicalComposer } from '../inference/localEngine.js';
  */
 class HybridNativeBridge implements NativeBridge {
   private indexedDbName = 'VerboVivo_Storage';
+  private memoryFallback = new Map<string, Uint8Array>();
 
   async getSystemInfo(): Promise<DeviceSystemInfo> {
     const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
@@ -68,13 +69,12 @@ class HybridNativeBridge implements NativeBridge {
   }
 
   async readPrivateFile(filePath: string): Promise<Uint8Array | null> {
+    if (typeof indexedDB === 'undefined') {
+      return this.memoryFallback.get(filePath) || null;
+    }
+
     // Almacenamiento seguro en IndexedDB para entorno Web/Desarrollo
     return new Promise((resolve) => {
-      if (typeof indexedDB === 'undefined') {
-        resolve(null);
-        return;
-      }
-
       const request = indexedDB.open(this.indexedDbName, 1);
       request.onupgradeneeded = () => {
         request.result.createObjectStore('private_files');
@@ -102,12 +102,12 @@ class HybridNativeBridge implements NativeBridge {
   }
 
   async writePrivateFile(filePath: string, data: Uint8Array): Promise<boolean> {
-    return new Promise((resolve) => {
-      if (typeof indexedDB === 'undefined') {
-        resolve(false);
-        return;
-      }
+    if (typeof indexedDB === 'undefined') {
+      this.memoryFallback.set(filePath, data);
+      return true;
+    }
 
+    return new Promise((resolve) => {
       const request = indexedDB.open(this.indexedDbName, 1);
       request.onupgradeneeded = () => {
         request.result.createObjectStore('private_files');
@@ -128,12 +128,12 @@ class HybridNativeBridge implements NativeBridge {
   }
 
   async deletePrivateFile(filePath: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      if (typeof indexedDB === 'undefined') {
-        resolve(false);
-        return;
-      }
+    if (typeof indexedDB === 'undefined') {
+      this.memoryFallback.delete(filePath);
+      return true;
+    }
 
+    return new Promise((resolve) => {
       const request = indexedDB.open(this.indexedDbName, 1);
       request.onsuccess = () => {
         const db = request.result;

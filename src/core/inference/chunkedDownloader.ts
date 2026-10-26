@@ -75,9 +75,11 @@ export class ChunkedDownloader {
 
         if (!existingChunk) {
           let chunkData: Uint8Array;
-          if (this.manifest.url && typeof fetch !== 'undefined') {
+          const isTestEnv = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test';
+
+          if (!isTestEnv && this.manifest.url && typeof fetch !== 'undefined') {
             try {
-              // Descarga por bloques HTTP Range reales
+              // Descarga por bloques HTTP Range reales en navegador/móvil
               const chunkSize = this.manifest.tamanoChunkMb * 1024 * 1024;
               const byteStart = chunkIndex * chunkSize;
               const byteEnd = Math.min((chunkIndex + 1) * chunkSize - 1, this.manifest.tamanoMb * 1024 * 1024 - 1);

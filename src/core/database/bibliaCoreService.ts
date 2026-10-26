@@ -26,6 +26,10 @@ export class BibliaCoreService {
     this.db = db;
   }
 
+  getDatabaseAdapter(): DatabaseAdapter {
+    return this.db;
+  }
+
   /**
    * Inicializa las tablas del núcleo bíblico y carga los datos semilla RV1909
    */

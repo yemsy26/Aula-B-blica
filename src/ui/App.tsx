@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { SqlJsDatabaseAdapter } from '../core/database/adapters/sqlJsAdapter.js';
+import {
+  loadOrInitBibliaDatabase,
+  loadOrInitUsuarioDatabase,
+  persistBibliaDatabase,
+  persistUsuarioDatabase,
+} from '../core/database/persistenceService.js';
 import { BibliaCoreService } from '../core/database/bibliaCoreService.js';
 import {
   UsuarioMemoriaService,
@@ -11,6 +16,7 @@ import {
 import { CitationInjector } from '../core/database/citationInjector.js';
 import { processShield } from '../core/shield/index.js';
 import { UserTheologicalLevel, ShieldProcessingResult, MinistryFormat } from '../core/shield/types.js';
+import { ModelProfileId } from '../core/inference/types.js';
 
 // Módulos de Recuperación Aumentada (RAG), Inferencia Local y Memoria Evolutiva
 import { HybridRetriever } from '../core/rag/hybridRetriever.js';
@@ -96,19 +102,15 @@ export const App: React.FC = () => {
     return usuarioService ? new MemoryCompressor(usuarioService, 2) : null;
   }, [usuarioService]);
 
-  // Inicialización de bases de datos SQLite en arranque
+  // Inicialización de bases de datos SQLite en arranque con persistencia local permanente
   useEffect(() => {
     async function initDatabases() {
       try {
-        // 1. Instanciar adaptador SQLite para biblia_core.sqlite
-        const bibliaAdapter = await SqlJsDatabaseAdapter.create();
-        const bService = new BibliaCoreService(bibliaAdapter);
-        await bService.initializeSchemaAndSeeds();
+        // 1. Cargar o inicializar biblia_core.sqlite desde almacenamiento privado
+        const { service: bService } = await loadOrInitBibliaDatabase();
 
-        // 2. Instanciar adaptador SQLite para usuario_memoria.sqlite
-        const usuarioAdapter = await SqlJsDatabaseAdapter.create();
-        const uService = new UsuarioMemoriaService(usuarioAdapter);
-        await uService.initializeSchema();
+        // 2. Cargar o inicializar usuario_memoria.sqlite desde almacenamiento privado
+        const { service: uService } = await loadOrInitUsuarioDatabase();
 
         // 3. Inyector de citas inmutables
         const injector = new CitationInjector(bService);
@@ -117,7 +119,7 @@ export const App: React.FC = () => {
         setUsuarioService(uService);
         setCitationInjector(injector);
 
-        // 4. Cargar datos de usuario
+        // 4. Cargar datos de usuario y versiones canónicas
         const initialChats = uService.listChats();
         const profile = uService.getGlobalProfile();
         const loadedStudies = uService.listStudyNotes();
@@ -129,15 +131,41 @@ export const App: React.FC = () => {
         setCurrentLevel(profile.nivel_espiritual);
         setAvailableVersions(versions);
 
+        // Restaurar versión bíblica guardada
+        let effectiveVersion = 'RV1909';
+        try {
+          const savedVersion = localStorage.getItem('verbovivo_active_version');
+          if (savedVersion && versions.includes(savedVersion)) {
+            effectiveVersion = savedVersion;
+            setActiveBibleVersion(savedVersion);
+          }
+        } catch {}
+
+        // Restaurar modelo activo guardado
+        try {
+          const savedModel = localStorage.getItem('verbovivo_active_model') as ModelProfileId | null;
+          if (savedModel && ['ULTRALIGHT', 'STANDARD', 'ADVANCED_4B', 'MAX_8B'].includes(savedModel)) {
+            localInferenceEngine.setActiveModelId(savedModel);
+            const modelNames: Record<ModelProfileId, string> = {
+              ULTRALIGHT: 'Edge Micro (0.8B)',
+              STANDARD: 'Edge Standard (1.5B)',
+              ADVANCED_4B: 'Exégesis Pro (4B)',
+              MAX_8B: 'Sovereign Master (8B)',
+            };
+            setActiveModelName(modelNames[savedModel] || 'Edge Standard (1.5B)');
+          }
+        } catch {}
+
         // 5. Generar Pan Diario proactivo a partir de la memoria evolutiva
-        const daily = DailyBreadEngine.generateDailyBread(uService, bService, 'RV1909');
+        const daily = DailyBreadEngine.generateDailyBread(uService, bService, effectiveVersion);
         setDailyBreadData(daily);
 
         if (initialChats.length > 0) {
           setActiveChatId(initialChats[0].id);
         } else {
-          // Crear chat inicial si no hay ninguno
+          // Crear chat inicial si no hay ninguno y persistir
           const firstChat = uService.createChat('Bienvenido a VerboVivo');
+          await persistUsuarioDatabase(uService);
           setChats([firstChat]);
           setActiveChatId(firstChat.id);
         }
@@ -154,9 +182,10 @@ export const App: React.FC = () => {
   const activeChat = chats.find((c) => c.id === activeChatId) || null;
 
   // Manejador para crear nueva conversación
-  const handleCreateNewChat = useCallback(() => {
+  const handleCreateNewChat = useCallback(async () => {
     if (!usuarioService) return;
     const newChat = usuarioService.createChat('Nueva Consulta Teológica', '[CHARLA_CONSEJERIA]', currentLevel);
+    await persistUsuarioDatabase(usuarioService);
     const updated = usuarioService.listChats();
     setChats(updated);
     setActiveChatId(newChat.id);
@@ -165,9 +194,10 @@ export const App: React.FC = () => {
 
   // Manejador para eliminar chat
   const handleDeleteChat = useCallback(
-    (chatId: string) => {
+    async (chatId: string) => {
       if (!usuarioService) return;
       usuarioService.deleteChat(chatId);
+      await persistUsuarioDatabase(usuarioService);
       const updated = usuarioService.listChats();
       setChats(updated);
       if (activeChatId === chatId) {
@@ -179,9 +209,10 @@ export const App: React.FC = () => {
 
   // Manejador para fijar/desfijar chat
   const handleTogglePinChat = useCallback(
-    (chatId: string) => {
+    async (chatId: string) => {
       if (!usuarioService) return;
       usuarioService.togglePinChat(chatId);
+      await persistUsuarioDatabase(usuarioService);
       setChats(usuarioService.listChats());
     },
     [usuarioService]
@@ -189,10 +220,11 @@ export const App: React.FC = () => {
 
   // Manejador para cambiar nivel
   const handleChangeLevel = useCallback(
-    (level: UserTheologicalLevel) => {
+    async (level: UserTheologicalLevel) => {
       setCurrentLevel(level);
       if (usuarioService) {
         const updated = usuarioService.updateGlobalProfile({ nivel_espiritual: level });
+        await persistUsuarioDatabase(usuarioService);
         setUserProfile(updated);
       }
     },
@@ -203,6 +235,9 @@ export const App: React.FC = () => {
   const handleSelectBibleVersion = useCallback(
     (ver: string) => {
       setActiveBibleVersion(ver);
+      try {
+        localStorage.setItem('verbovivo_active_version', ver);
+      } catch {}
       if (usuarioService && bibliaService) {
         const updatedDaily = DailyBreadEngine.generateDailyBread(usuarioService, bibliaService, ver);
         setDailyBreadData(updatedDaily);
@@ -213,11 +248,15 @@ export const App: React.FC = () => {
 
   // Manejador al importar nueva versión
   const handleVersionImported = useCallback(
-    (versionTag: string) => {
+    async (versionTag: string) => {
       if (!bibliaService) return;
+      await persistBibliaDatabase(bibliaService);
       const vers = bibliaService.listAvailableVersions();
       setAvailableVersions(vers);
       setActiveBibleVersion(versionTag);
+      try {
+        localStorage.setItem('verbovivo_active_version', versionTag);
+      } catch {}
       if (usuarioService) {
         const updatedDaily = DailyBreadEngine.generateDailyBread(usuarioService, bibliaService, versionTag);
         setDailyBreadData(updatedDaily);
@@ -228,7 +267,7 @@ export const App: React.FC = () => {
 
   // Iniciar estudio desde versículo del Pan Diario
   const handleStartStudyFromVerse = useCallback(
-    (ref: string, verseText: string) => {
+    async (ref: string, verseText: string) => {
       if (!usuarioService) return;
       usuarioService.saveStudyNote({
         titulo: `Meditación: ${ref}`,
@@ -241,7 +280,7 @@ export const App: React.FC = () => {
         exportado_whatsapp: false,
         exportado_pdf: false,
       });
-
+      await persistUsuarioDatabase(usuarioService);
       setStudies(usuarioService.listStudyNotes());
       setActiveTab('whiteboard');
     },
@@ -274,11 +313,12 @@ export const App: React.FC = () => {
 
       const currentMessages = activeChat ? [...activeChat.mensajes, userMsg] : [userMsg];
 
-      // Actualizar estado del chat de inmediato en UI y SQLite
+      // Actualizar estado del chat de inmediato en UI y SQLite con persistencia permanente
       usuarioService.saveChatMessages(activeChatId, currentMessages, {
         ruta: shieldResult.detectedRoute,
         nivel: currentLevel,
       });
+      await persistUsuarioDatabase(usuarioService);
       setChats(usuarioService.listChats());
 
       // 2. RAG Híbrido: Reescritura semántica de intención cotidiana a conceptos teológicos
@@ -352,15 +392,17 @@ export const App: React.FC = () => {
         nivel: currentLevel,
       });
 
+      await persistUsuarioDatabase(usuarioService);
       setChats(usuarioService.listChats());
       setStreamingText('');
 
       // 6. Destilador de Memoria Global Asíncrono en Tiempo Muerto (Non-blocking)
       memoryCompressor.scheduleCompression(activeChatId, [userMsg, assistantMsg]);
-      // Refrescar perfil después de un micro-retardo
-      setTimeout(() => {
+      // Refrescar perfil después de un micro-retardo y persistir
+      setTimeout(async () => {
         if (usuarioService) {
           setUserProfile(usuarioService.getGlobalProfile());
+          await persistUsuarioDatabase(usuarioService);
         }
       }, 150);
     } catch (err) {
@@ -373,7 +415,7 @@ export const App: React.FC = () => {
 
   // Manejador para fijar mensaje a la Pizarra de Estudio
   const handlePinToStudy = useCallback(
-    (message: ChatMessage) => {
+    async (message: ChatMessage) => {
       if (!usuarioService) return;
       usuarioService.saveStudyNote({
         chat_id: activeChatId || undefined,
@@ -388,6 +430,7 @@ export const App: React.FC = () => {
         exportado_pdf: false,
       });
 
+      await persistUsuarioDatabase(usuarioService);
       setStudies(usuarioService.listStudyNotes());
       setActiveTab('whiteboard');
     },
@@ -396,9 +439,10 @@ export const App: React.FC = () => {
 
   // Guardar estudio desde Pizarra
   const handleSaveStudy = useCallback(
-    (note: Omit<StudyNote, 'fecha_creacion' | 'fecha_actualizacion' | 'id'> & { id?: string }) => {
+    async (note: Omit<StudyNote, 'fecha_creacion' | 'fecha_actualizacion' | 'id'> & { id?: string }) => {
       if (!usuarioService) return;
       usuarioService.saveStudyNote(note);
+      await persistUsuarioDatabase(usuarioService);
       setStudies(usuarioService.listStudyNotes());
     },
     [usuarioService]
@@ -406,9 +450,10 @@ export const App: React.FC = () => {
 
   // Eliminar estudio de la Pizarra
   const handleDeleteStudy = useCallback(
-    (studyId: string) => {
+    async (studyId: string) => {
       if (!usuarioService) return;
       usuarioService.deleteStudyNote(studyId);
+      await persistUsuarioDatabase(usuarioService);
       setStudies(usuarioService.listStudyNotes());
     },
     [usuarioService]
@@ -524,7 +569,16 @@ export const App: React.FC = () => {
         activeModelId={localInferenceEngine.getActiveModelId()}
         onModelActivated={(modelId) => {
           localInferenceEngine.setActiveModelId(modelId);
-          setActiveModelName(modelId === 'ULTRALIGHT' ? 'Edge Micro (0.8B)' : 'Edge Standard (1.5B)');
+          try {
+            localStorage.setItem('verbovivo_active_model', modelId);
+          } catch {}
+          const modelNames: Record<ModelProfileId, string> = {
+            ULTRALIGHT: 'Edge Micro (0.8B)',
+            STANDARD: 'Edge Standard (1.5B)',
+            ADVANCED_4B: 'Exégesis Pro (4B)',
+            MAX_8B: 'Sovereign Master (8B)',
+          };
+          setActiveModelName(modelNames[modelId] || 'Edge Standard (1.5B)');
           setIsModelModalOpen(false);
         }}
       />
