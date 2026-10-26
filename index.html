@@ -16,16 +16,33 @@
   </head>
   <body class="bg-nocturne-950 text-zinc-200 antialiased selection:bg-sacred-gold/25 selection:text-zinc-900">
     <div id="root"></div>
+    <script>
+      // Desactivar service workers antiguos en desarrollo y purgar caches
+      if ('serviceWorker' in navigator) {
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            for (var r of regs) r.unregister();
+          });
+          if ('caches' in window) {
+            caches.keys().then(function(names) {
+              for (var n of names) caches.delete(n);
+            });
+          }
+        } else {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch((err) => {
+              console.warn('[PWA] Service Worker registration failed:', err);
+            });
+          });
+        }
+      }
+      try {
+        localStorage.removeItem('verbovivo_theme');
+        localStorage.removeItem('theme');
+      } catch (e) {}
+      document.documentElement.classList.remove('dark');
+    </script>
     <script src="/sql-wasm.js"></script>
     <script type="module" src="/src/ui/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch((err) => {
-            console.warn('[PWA] Service Worker registration failed:', err);
-          });
-        });
-      }
-    </script>
   </body>
 </html>

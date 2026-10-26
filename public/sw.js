@@ -1,4 +1,4 @@
-const CACHE_NAME = 'verbovivo-v1.0.0';
+const CACHE_NAME = 'verbovivo-v1.0.2';
 
 const PRECACHE_URLS = [
   '/',
@@ -11,18 +11,18 @@ const PRECACHE_URLS = [
   '/favicon.svg',
 ];
 
-// Instalación: Precachear assets críticos (incluyendo WASM de SQLite)
+// Instalación: Precachear assets y forzar activación inmediata
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
       .catch((err) => console.warn('[PWA] Error en precache:', err))
   );
 });
 
-// Activación: Reclamar clientes inmediatamente y purgar cachés antiguos
+// Activación: Purgar inmediatamente TODOS los cachés antiguos y reclamar clientes
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
@@ -31,7 +31,10 @@ self.addEventListener('activate', (event) => {
         Promise.all(
           cacheNames
             .filter((name) => name !== CACHE_NAME)
-            .map((name) => caches.delete(name))
+            .map((name) => {
+              console.log('[PWA] Purgando caché antiguo:', name);
+              return caches.delete(name);
+            })
         )
       )
       .then(() => self.clients.claim())
@@ -46,6 +49,11 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+
+  // En entorno localhost nunca interceptar para no interferir con recarga rápida de Vite
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return;
+  }
 
   // 1. Navegación HTML: Network-First con fallback a index.html en caché (100% Offline)
   if (request.mode === 'navigate') {
@@ -66,36 +74,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Recursos estáticos y WASM: Cache-First con Stale-While-Revalidate
+  // 2. Recursos: Network-first cuando hay conexión para recibir siempre los estilos más recientes
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // En segundo plano refrescar si hay conexión
-        fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse));
-            }
-          })
-          .catch(() => {
-            // Modo offline normal, no hacer nada
-          });
-        return cachedResponse;
-      }
-
-      // Si no estaba en caché, pedir a la red y guardar copia
-      return fetch(request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+    fetch(request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
-
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseToCache);
-        });
-
         return networkResponse;
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(request);
+      })
   );
 });
