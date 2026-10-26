@@ -15,30 +15,34 @@ const LEVELS: {
   icon: React.ComponentType<{ className?: string }>;
   activeColor: string;
   badgeColor: string;
+  hoverColor: string;
 }[] = [
   {
     id: 'Semilla',
     label: 'Semilla',
-    subtitle: 'Básico · Cotidiano',
+    subtitle: 'Básico · Gracia y Vida',
     icon: Sprout,
-    activeColor: 'bg-emerald-600/20 text-emerald-300 border-emerald-500/50 shadow-emerald-950/20',
-    badgeColor: 'text-emerald-400',
+    activeColor: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-sm shadow-emerald-500/10',
+    badgeColor: 'text-emerald-600 dark:text-emerald-400',
+    hoverColor: 'hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/10',
   },
   {
     id: 'Discipulo',
     label: 'Discípulo',
-    subtitle: 'Intermedio · Histórico',
+    subtitle: 'Intermedio · Verdad Celestial',
     icon: Scroll,
-    activeColor: 'bg-amber-600/20 text-amber-300 border-amber-500/50 shadow-amber-950/20',
-    badgeColor: 'text-amber-400',
+    activeColor: 'bg-sky-500/15 text-sky-900 dark:text-sky-300 border-sky-500/50 shadow-sm shadow-sky-500/10',
+    badgeColor: 'text-sky-600 dark:text-sky-400',
+    hoverColor: 'hover:text-sky-700 dark:hover:text-sky-300 hover:bg-sky-500/10',
   },
   {
     id: 'Maestro',
     label: 'Maestro',
-    subtitle: 'Profundo · Exegético',
+    subtitle: 'Profundo · Gloria Shejiná',
     icon: BookMarked,
-    activeColor: 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50 shadow-indigo-950/20',
-    badgeColor: 'text-indigo-400',
+    activeColor: 'bg-amber-500/15 text-amber-950 dark:text-amber-300 border-amber-500/50 shadow-sm shadow-amber-500/10',
+    badgeColor: 'text-amber-600 dark:text-amber-400',
+    hoverColor: 'hover:text-amber-800 dark:hover:text-amber-300 hover:bg-amber-500/10',
   },
 ];
 
@@ -89,7 +93,7 @@ export const LevelSelector: React.FC<LevelSelectorProps> = ({
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 smooth-gpu border ${
                 isSelected
                   ? `${lvl.activeColor} border shadow-sm`
-                  : 'text-zinc-400 hover:text-zinc-200 border-transparent hover:bg-nocturne-800/60'
+                  : `text-zinc-400 ${lvl.hoverColor} border-transparent`
               } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <Icon className={`w-3.5 h-3.5 ${isSelected ? lvl.badgeColor : 'text-zinc-400'}`} />

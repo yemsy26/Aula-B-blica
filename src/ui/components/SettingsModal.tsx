@@ -14,6 +14,8 @@ import {
   Scroll,
   BookMarked,
   ShieldCheck,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { UserTheologicalLevel } from '../../core/shield/types.js';
 import { UserEvolutionProfile } from '../../core/database/usuarioMemoriaService.js';
@@ -33,6 +35,8 @@ interface SettingsModalProps {
   userProfile?: UserEvolutionProfile;
   onExportBackup: () => void;
   onOpenWelcomeGuide: () => void;
+  theme?: 'angelic' | 'vigilia';
+  onToggleTheme?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -49,6 +53,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   userProfile,
   onExportBackup,
   onOpenWelcomeGuide,
+  theme = 'angelic',
+  onToggleTheme,
 }) => {
   const [activeTab, setActiveTab] = useState<'theology' | 'voice' | 'brain' | 'memory'>('theology');
 
@@ -60,31 +66,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     subtitle: string;
     desc: string;
     icon: React.ComponentType<{ className?: string }>;
-    color: string;
+    selectedClass: string;
+    titleClass: string;
+    iconClass: string;
   }[] = [
     {
       id: 'Semilla',
       label: 'Semilla',
-      subtitle: 'Básico · Devocional y Cotidiano',
-      desc: 'Respuestas directas con lenguaje cálido y aplicaciones prácticas para la vida diaria.',
+      subtitle: 'Básico · Gracia y Vida',
+      desc: 'Respuestas directas con lenguaje cálido, ilustraciones cotidianas y aplicaciones prácticas para el creyente.',
       icon: Sprout,
-      color: 'text-emerald-400 border-emerald-500/40 bg-emerald-950/30',
+      selectedClass: 'border-emerald-500/60 bg-emerald-500/10 shadow-sm shadow-emerald-500/15',
+      titleClass: 'text-emerald-700 dark:text-emerald-300',
+      iconClass: 'text-emerald-600 dark:text-emerald-400',
     },
     {
       id: 'Discipulo',
       label: 'Discípulo',
-      subtitle: 'Intermedio · Doctrinal e Histórico',
-      desc: 'Análisis del contexto cultural, trasfondo del libro y conexiones teológicas entre pasajes.',
+      subtitle: 'Intermedio · Verdad Celestial',
+      desc: 'Análisis del contexto cultural, geográfico, cronología bíblica y conexiones doctrinales intertextuales.',
       icon: Scroll,
-      color: 'text-amber-400 border-amber-500/40 bg-amber-950/30',
+      selectedClass: 'border-sky-500/60 bg-sky-500/10 shadow-sm shadow-sky-500/15',
+      titleClass: 'text-sky-800 dark:text-sky-300',
+      iconClass: 'text-sky-600 dark:text-sky-400',
     },
     {
       id: 'Maestro',
       label: 'Maestro',
-      subtitle: 'Avanzado · Exegético y Raíces',
-      desc: 'Exégesis profunda con raíces en Hebreo y Griego Koiné (Strong), gramática e historia.',
+      subtitle: 'Profundo · Gloria Shejiná',
+      desc: 'Exégesis de alta precisión con raíces en Hebreo y Griego Koiné (Strong), sintaxis original e historia de la redención.',
       icon: BookMarked,
-      color: 'text-indigo-400 border-indigo-500/40 bg-indigo-950/30',
+      selectedClass: 'border-amber-500/60 bg-amber-500/10 shadow-sm shadow-amber-500/15',
+      titleClass: 'text-amber-800 dark:text-amber-300',
+      iconClass: 'text-amber-600 dark:text-amber-400',
     },
   ];
 
@@ -182,10 +196,62 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* TAB 1: TEOLOGÍA & CANON */}
           {activeTab === 'theology' && (
             <div className="space-y-5">
-              {/* Sección A: Nivel Teológico */}
-              <div className="space-y-2.5">
+              {/* Sección 0: Atmósfera Visual Celestial */}
+              {onToggleTheme && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-sacred-gold uppercase font-mono tracking-wider">
+                    Atmósfera y Modo Visual
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => theme !== 'angelic' && onToggleTheme()}
+                      className={`p-3 rounded-2xl border transition-all flex items-center gap-3 cursor-pointer text-left ${
+                        theme === 'angelic'
+                          ? 'bg-amber-500/15 border-sacred-gold text-zinc-100 shadow-sm font-semibold'
+                          : 'bg-nocturne-950/60 border-nocturne-800 text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0">
+                        <Sun className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold">Luz Angelical</span>
+                          {theme === 'angelic' && <Check className="w-3.5 h-3.5 text-sacred-gold" />}
+                        </div>
+                        <span className="block text-[10px] text-zinc-400">Blanco alabastro, claridad y luz serena</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => theme !== 'vigilia' && onToggleTheme()}
+                      className={`p-3 rounded-2xl border transition-all flex items-center gap-3 cursor-pointer text-left ${
+                        theme === 'vigilia'
+                          ? 'bg-indigo-500/15 border-indigo-500/60 text-zinc-100 shadow-sm font-semibold'
+                          : 'bg-nocturne-950/60 border-nocturne-800 text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                        <Moon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold">Vigilia Nocturna</span>
+                          {theme === 'vigilia' && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                        </div>
+                        <span className="block text-[10px] text-zinc-400">Atmósfera oscura para oración de noche</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Sección A: Nivel Teológico y Combinación Armónica */}
+              <div className="space-y-2.5 pt-2 border-t border-nocturne-800">
                 <label className="block text-xs font-semibold text-sacred-gold uppercase font-mono tracking-wider">
-                  Nivel de Exégesis y Audiencia
+                  Nivel de Exégesis y Armonía Ministerial
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {LEVELS.map((lvl) => {
@@ -197,17 +263,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         onClick={() => onChangeLevel(lvl.id)}
                         className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
                           isSelected
-                            ? `${lvl.color} shadow-md`
+                            ? `${lvl.selectedClass} shadow-md`
                             : 'bg-nocturne-950/60 border-nocturne-800 hover:border-nocturne-700 text-zinc-400'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-1.5 font-bold text-xs text-parchment-100">
-                            <Icon className="w-4 h-4 text-sacred-gold" />
+                          <div className={`flex items-center gap-1.5 font-bold text-xs ${isSelected ? lvl.titleClass : 'text-zinc-200'}`}>
+                            <Icon className={`w-4 h-4 ${isSelected ? lvl.iconClass : 'text-sacred-gold'}`} />
                             <span>{lvl.label}</span>
                           </div>
-                          {isSelected && <Check className="w-4 h-4 text-emerald-400" />}
+                          {isSelected && <Check className={`w-4 h-4 ${lvl.iconClass}`} />}
                         </div>
+                        <span className="block text-[9px] font-medium font-mono text-zinc-400 mb-1">
+                          {lvl.subtitle}
+                        </span>
                         <p className="text-[10px] text-zinc-400 leading-snug">
                           {lvl.desc}
                         </p>

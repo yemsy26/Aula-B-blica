@@ -15,6 +15,7 @@ import {
   Square,
   Menu,
   Sun,
+  Moon,
   HelpCircle,
   Settings,
   BookOpen,
@@ -44,7 +45,31 @@ interface ChatViewProps {
   onToggleMobileSidebar?: () => void;
   onOpenWelcomeGuide?: () => void;
   onOpenSettings?: () => void;
+  theme?: 'angelic' | 'vigilia';
+  onToggleTheme?: () => void;
 }
+
+const LEVEL_ACCENTS: Record<UserTheologicalLevel, {
+  pillClass: string;
+  focusClass: string;
+  dotClass: string;
+}> = {
+  Semilla: {
+    pillClass: 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/40',
+    focusClass: 'focus-within:border-emerald-500/60 focus-within:shadow-[0_0_25px_rgba(16,185,129,0.22)]',
+    dotClass: 'bg-emerald-500',
+  },
+  Discipulo: {
+    pillClass: 'bg-sky-500/15 text-sky-900 dark:text-sky-300 border-sky-500/40',
+    focusClass: 'focus-within:border-sky-500/60 focus-within:shadow-[0_0_25px_rgba(2,132,199,0.22)]',
+    dotClass: 'bg-sky-500',
+  },
+  Maestro: {
+    pillClass: 'bg-amber-500/15 text-amber-950 dark:text-amber-300 border-amber-500/40',
+    focusClass: 'focus-within:border-amber-500/60 focus-within:shadow-[0_0_25px_rgba(217,119,6,0.22)]',
+    dotClass: 'bg-amber-500',
+  },
+};
 
 const FORMAT_PILLS: { id: MinistryFormat; label: string }[] = [
   { id: 'AUTO', label: '⚡ Auto' },
@@ -163,6 +188,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onToggleMobileSidebar,
   onOpenWelcomeGuide,
   onOpenSettings,
+  theme = 'angelic',
+  onToggleTheme,
 }) => {
   const [inputText, setInputText] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -273,6 +300,28 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
           {/* Selector de Nivel Teológico */}
           <LevelSelector currentLevel={currentLevel} onChange={onChangeLevel} />
+
+          {/* Alternador Rápido de Tema (Luz Angelical ☀️ / Vigilia Nocturna 🌙) */}
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-gradient-to-r from-nocturne-900 to-nocturne-850 hover:from-nocturne-850 hover:to-nocturne-800 border border-nocturne-800 hover:border-sacred-gold/40 text-zinc-300 hover:text-sacred-gold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              title={theme === 'angelic' ? 'Cambiar a Vigilia Nocturna (Oscuro)' : 'Cambiar a Luz Angelical (Luminoso)'}
+            >
+              {theme === 'angelic' ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-500" />
+                  <span className="hidden xl:inline text-[11px] font-medium">Luz Angelical</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-4 h-4 text-indigo-400" />
+                  <span className="hidden xl:inline text-[11px] font-medium">Vigilia</span>
+                </>
+              )}
+            </button>
+          )}
 
           {/* Botón Centralizado de Ajustes */}
           {onOpenSettings && (
@@ -533,7 +582,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
         <div className="max-w-3xl mx-auto space-y-2 pointer-events-auto">
           {/* Telemetría del Escudo Limpiador y RAG Híbrido en Tiempo Real */}
           {lastShieldResult && (
-            <div className="px-3.5 py-1.5 bg-nocturne-900/80 backdrop-blur-xl rounded-2xl border border-white/10 flex flex-wrap items-center justify-between gap-1 text-[9px] sm:text-[10px] text-zinc-400 font-mono shadow-lg">
+            <div className="px-3.5 py-1.5 bg-nocturne-900/80 backdrop-blur-xl rounded-2xl border border-nocturne-800 flex flex-wrap items-center justify-between gap-1 text-[9px] sm:text-[10px] text-zinc-400 font-mono shadow-lg">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <Zap className="w-3 h-3 text-sacred-gold" />
                 <span>Escudo: {lastShieldResult.processingTimeMs} ms</span>
@@ -551,7 +600,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
           )}
 
           {/* Caja Flotante de Vidrio con Formatos Ministeriales y Área de Escritura */}
-          <div className="bg-nocturne-900/85 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl p-2.5 sm:p-3 transition-all focus-within:border-sacred-gold/50 focus-within:shadow-[0_0_30px_rgba(203,163,88,0.18)]">
+          <div className={`bg-nocturne-900/90 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-nocturne-800 shadow-2xl p-2.5 sm:p-3 transition-all ${LEVEL_ACCENTS[currentLevel]?.focusClass || 'focus-within:border-sacred-gold/50'}`}>
             {/* Selector Rápido de Formatos Ministeriales */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none text-[11px] px-1">
               {FORMAT_PILLS.map((pill) => (
@@ -562,7 +611,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   className={`px-2.5 py-1 rounded-full whitespace-nowrap transition-all border font-medium flex items-center gap-1 cursor-pointer text-[10px] sm:text-[11px] ${
                     selectedFormat === pill.id
                       ? 'bg-sacred-gold text-nocturne-950 border-sacred-gold shadow-sm font-semibold'
-                      : 'bg-white/5 text-zinc-400 hover:text-zinc-200 border-white/5 hover:border-white/10 hover:bg-white/10'
+                      : 'bg-nocturne-850/80 text-zinc-400 hover:text-zinc-100 border-nocturne-800 hover:bg-nocturne-800'
                   }`}
                 >
                   <span>{pill.label}</span>
@@ -588,22 +637,25 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 />
               </div>
 
-              {/* Barra Inferior de la Cápsula: Canon, Nivel y Botón de Enviar */}
-              <div className="flex items-center justify-between pt-1.5 border-t border-white/5 px-1">
+              {/* Barra Inferior de la Cápsula: Canon, Nivel Armonizado y Botón de Enviar */}
+              <div className="flex items-center justify-between pt-1.5 border-t border-nocturne-800/80 px-1">
                 <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-sans">
                   {onOpenSettings && (
                     <button
                       type="button"
                       onClick={onOpenSettings}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-sacred-gold border border-white/5 transition-colors cursor-pointer"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-nocturne-850 hover:bg-nocturne-800 text-zinc-400 hover:text-sacred-gold border border-nocturne-800 transition-colors cursor-pointer"
                       title="Configurar Canon Bíblico y Módulos"
                     >
                       <BookOpen className="w-3 h-3 text-sacred-gold" />
                       <span className="font-medium">{activeBibleVersion || 'RV1909'}</span>
                     </button>
                   )}
-                  <span className="hidden sm:inline-block text-zinc-600">·</span>
-                  <span className="hidden sm:inline-block text-zinc-400">Nivel {currentLevel}</span>
+                  <span className="hidden sm:inline-block text-zinc-400">·</span>
+                  <span className={`hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${LEVEL_ACCENTS[currentLevel]?.pillClass || ''}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${LEVEL_ACCENTS[currentLevel]?.dotClass || 'bg-sacred-gold'}`} />
+                    <span>Nivel {currentLevel}</span>
+                  </span>
                 </div>
 
                 <button
