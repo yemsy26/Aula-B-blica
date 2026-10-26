@@ -429,7 +429,7 @@ export const App: React.FC = () => {
 
   if (isInitializing) {
     return (
-      <div className="w-screen h-screen flex flex-col items-center justify-center bg-nocturne-950 text-parchment-100 gap-3">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-nocturne-950 text-parchment-100 gap-3">
         <Loader2 className="w-8 h-8 text-sacred-gold animate-spin" />
         <p className="font-serif text-sm tracking-wide">
           Inicializando motores SQLite RV1909 & Memoria Evolutiva...
@@ -439,7 +439,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="w-screen h-screen flex bg-nocturne-950 overflow-hidden font-sans select-none">
+    <div className="w-full h-full flex bg-nocturne-950 overflow-hidden font-sans select-none">
       {/* Barra Lateral: Historiales, Memoria y Cerebro */}
       {userProfile && (
         <SidebarHistory
