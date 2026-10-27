@@ -342,7 +342,8 @@ export const App: React.FC = () => {
           setStreamingText(accumulatedOutput);
         },
         userProfile,
-        shieldResult.detectedFormat
+        shieldResult.detectedFormat,
+        currentMessages
       );
 
       const timeoutPromise = new Promise<string>((_, reject) =>
@@ -361,7 +362,9 @@ export const App: React.FC = () => {
           currentLevel,
           groundTruth.promptContext,
           undefined,
-          userProfile
+          userProfile,
+          shieldResult.detectedFormat,
+          currentMessages
         );
       }
 

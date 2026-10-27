@@ -1,5 +1,5 @@
 import { UserTheologicalLevel, TheologicalRoute, MinistryFormat } from '../shield/types.js';
-import { UserEvolutionProfile } from '../database/usuarioMemoriaService.js';
+import { UserEvolutionProfile, ChatMessage } from '../database/usuarioMemoriaService.js';
 
 export type ModelProfileId = 'ULTRALIGHT' | 'STANDARD' | 'ADVANCED_4B' | 'MAX_8B';
 
@@ -59,7 +59,8 @@ export interface InferenceEngine {
     groundTruthContext?: string,
     onToken?: (token: string) => void,
     userProfile?: UserEvolutionProfile | null,
-    format?: MinistryFormat
+    format?: MinistryFormat,
+    chatHistory?: ChatMessage[]
   ): Promise<string>;
   releaseMemory(): Promise<void>;
 }

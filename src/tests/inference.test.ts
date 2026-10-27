@@ -182,7 +182,11 @@ describe('Inferencia Edge - Motor Determinista Local', () => {
       const response = await engine.generate(
         'necesito un estudio de Romanos para dar un culto',
         '[CREADOR_ESTUDIO]',
-        'Discipulo'
+        'Discipulo',
+        undefined,
+        undefined,
+        null,
+        'SERMON_CULTO'
       );
 
       // Verificación de volumen extenso (multipágina ministerial)

@@ -110,7 +110,7 @@ const renderFormattedInline = (text: string) => {
 };
 
 // Renderizador estructurado de contenido teológico y citas canónicas
-const renderMessageContent = (content: string) => {
+const renderMessageContent = (content: string, onActionClick?: (actionText: string) => void) => {
   const blocks = content.split(/\n\n+/);
   return blocks.map((block, bIdx) => {
     const trimmed = block.trim();
@@ -154,6 +154,46 @@ const renderMessageContent = (content: string) => {
           {trimmed.replace(/^###\s*/, '')}
         </h4>
       );
+    }
+
+    // Comprobar si el bloque contiene etiquetas de acuerdos o botones interactivos [ACUERDO: ...]
+    const agreementMatches = Array.from(block.matchAll(/\[ACUERDO:\s*([^\]]+)\]/gi));
+    if (agreementMatches.length > 0) {
+      const textWithoutAgreements = block.replace(/\[ACUERDO:\s*[^\]]+\]\s*/gi, '').trim();
+      return (
+        <div key={bIdx} className="space-y-2">
+          {textWithoutAgreements && (
+            <div className="space-y-1">
+              {textWithoutAgreements.split('\n').map((line, lIdx) => (
+                <p key={lIdx} className="leading-relaxed">
+                  {renderFormattedInline(line)}
+                </p>
+              ))}
+            </div>
+          )}
+          <div className="pt-1 flex flex-wrap gap-2">
+            {agreementMatches.map((match, aIdx) => {
+              const actionLabel = match[1].trim();
+              return (
+                <button
+                  key={aIdx}
+                  type="button"
+                  onClick={() => onActionClick?.(actionLabel)}
+                  className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-sacred-gold/25 via-sacred-gold/15 to-amber-500/20 hover:from-sacred-gold/40 hover:to-amber-500/35 border border-sacred-gold/50 text-sacred-gold-light hover:text-white font-medium text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all text-left cursor-pointer group"
+                >
+                  <Zap className="w-3.5 h-3.5 text-sacred-gold group-hover:scale-110 transition-transform shrink-0" />
+                  <span>{actionLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // Separador horizontal
+    if (trimmed === '---') {
+      return <hr key={bIdx} className="my-2 border-nocturne-800" />;
     }
 
     // Párrafos convencionales
@@ -473,7 +513,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 >
                   {/* Contenido con formateo limpio de citas e inline markdown */}
                   <div className="space-y-2.5 text-xs sm:text-sm">
-                    {renderMessageContent(msg.content)}
+                    {renderMessageContent(msg.content, (actionLabel) => onSendMessage(actionLabel, 'AUTO'))}
                   </div>
 
                   {/* Acciones de Mensaje (Copiar / Fijar a Estudio / Voz) */}

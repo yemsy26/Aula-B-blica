@@ -718,9 +718,16 @@ export function composeSpecificPassageExegesis(
       ? `* Al meditar hoy en que el Señor es tu Pastor personal, ¿en qué área concreta de tu vida (finanzas, salud, familia o decisiones futuras) estás sintiendo la tentación de vivir con afán o controlar todo tú mismo, en lugar de descansar en su pastoreo soberano?`
       : `* ¿De qué manera la verdad revelada en ${formattedCitation} confronta hoy tus prioridades y te invita a dar un paso de fe y descanso en el Señor?`);
 
+  const agreementsBlock =
+    `\n\n---\n` +
+    `**Herramientas Homiléticas Disponibles (Toca para desarrollar el formato completo):**\n` +
+    `[ACUERDO: Desarrollar Sermón Expositivo de Culto sobre ${formattedCitation}]\n` +
+    `[ACUERDO: Desarrollar Lección de Escuela Dominical sobre ${formattedCitation}]\n` +
+    `[ACUERDO: Desarrollar Guía para Célula / Jóvenes sobre ${formattedCitation}]`;
+
   const footer = `\n\n💡 *Puedes presionar **"Fijar"** debajo de este estudio para guardarlo en tu Pizarra y continuar profundizando en él.*`;
 
-  return header + scriptureBlock + contextSection + lexiconSection + clauseSection + christologySection + applicationSection + footer;
+  return header + scriptureBlock + contextSection + lexiconSection + clauseSection + christologySection + applicationSection + agreementsBlock + footer;
 }
 
 /**
@@ -784,6 +791,11 @@ export function composeBookStudyGuide(
     `   - [CITA: ${c1}]\n` +
     `   - [CITA: ${c2}]\n\n` +
     `4. **Acompañamiento Paso a Paso (Regla del Ping-Pong):**\n` +
-    `* Hemos preparado esta hoja de ruta para acompañarte capítulo por capítulo. ¿Te gustaría que comencemos explorando juntos la **Etapa 1**, o prefieres que analicemos en detalle la definición y aplicación de alguno de los términos teológicos clave?`
+    `* Hemos preparado esta hoja de ruta para acompañarte capítulo por capítulo. ¿Te gustaría que comencemos explorando juntos la **Etapa 1**, o prefieres que analicemos en detalle la definición y aplicación de alguno de los términos teológicos clave?\n\n` +
+    `---\n` +
+    `**Herramientas Homiléticas y Pedagógicas (Toca para desarrollar el formato completo):**\n` +
+    `[ACUERDO: Desarrollar Serie de 4 Semanas sobre ${book.nombre}]\n` +
+    `[ACUERDO: Desarrollar Lección de Escuela Dominical sobre ${book.nombre}]\n` +
+    `[ACUERDO: Desarrollar Sermón Expositivo de Culto sobre ${book.nombre}]`
   );
 }

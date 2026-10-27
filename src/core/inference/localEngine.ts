@@ -4,7 +4,7 @@ import { getPersonalityConfig } from './systemPrompts.js';
 import { realModelBridge } from './realModelBridge.js';
 import { findCanonicalBook } from '../database/canonicalBooks.js';
 import { findBiblicalMirror } from '../rag/casuistryMapper.js';
-import { UserEvolutionProfile } from '../database/usuarioMemoriaService.js';
+import { UserEvolutionProfile, ChatMessage } from '../database/usuarioMemoriaService.js';
 import { classifyMinistryFormat } from '../shield/routerClassifier.js';
 import {
   composeSermonCulto,
@@ -20,6 +20,11 @@ import {
   composeSpecificPassageExegesis,
   composeBookStudyGuide,
 } from './passageExegesisService.js';
+import {
+  resolveUserAgreement,
+  composeDialogueAgreementProposal,
+  wrapApprovedDocumentWithDialogue,
+} from './dialogueAgreementManager.js';
 
 /**
  * Sintetizador Exegético Dinámico Universal:
@@ -37,37 +42,47 @@ export class DynamicTheologicalComposer {
     availableCitations: string[],
     _groundTruthContext?: string,
     userProfile?: UserEvolutionProfile | null,
-    format?: MinistryFormat
+    format?: MinistryFormat,
+    chatHistory?: ChatMessage[]
   ): string {
-    const activeFormat = format && format !== 'AUTO' ? format : classifyMinistryFormat(prompt);
+    const agreement = resolveUserAgreement(prompt, chatHistory, format);
     const specificPassage = extractBiblicalReference(prompt);
     const detectedBook = specificPassage?.canonicalBook || findCanonicalBook(prompt);
     const mirror = findBiblicalMirror(prompt);
     const lowerPrompt = prompt.toLowerCase();
+    const activeFormat = agreement.targetFormat !== 'AUTO' ? agreement.targetFormat : classifyMinistryFormat(prompt);
 
     // =========================================================================
-    // 0. GENERACIÓN DE FORMATOS HOMILÉTICOS EXTENSOS (MULTIPÁGINA > 2,500 CARACTERES)
+    // 0. GENERACIÓN DE FORMATOS HOMILÉTICOS EXTENSOS (SÓLO TRAS ACUERDO / SOLICITUD EXPLÍCITA)
     // =========================================================================
-    if (activeFormat === 'SERMON_CULTO') {
-      return composeSermonCulto(prompt, availableCitations);
-    }
-    if (activeFormat === 'ESTUDIO_CLASE') {
-      return composeEstudioClase(prompt, availableCitations);
-    }
-    if (activeFormat === 'CELULA_JOVENES') {
-      return composeCelulaJovenes(prompt, availableCitations);
-    }
-    if (activeFormat === 'SERIE_CAMPANA') {
-      return composeSerieCampana(prompt, availableCitations);
-    }
-    if (activeFormat === 'PERFIL_PERSONAJE') {
-      return composePerfilPersonaje(prompt, availableCitations);
-    }
-    if (activeFormat === 'DOCTRINA_SISTEMATICA') {
-      return composeDoctrinaSistematica(prompt, availableCitations);
-    }
-    if (activeFormat === 'CEREMONIA_ESPECIAL') {
-      return composeCeremoniaEspecial(prompt, availableCitations);
+    if (agreement.isApprovedOrExplicit) {
+      const targetFormat =
+        agreement.targetFormat !== 'AUTO'
+          ? agreement.targetFormat
+          : activeFormat !== 'AUTO'
+          ? activeFormat
+          : 'SERMON_CULTO';
+
+      let doc = '';
+      if (targetFormat === 'SERMON_CULTO') {
+        doc = composeSermonCulto(prompt, availableCitations);
+      } else if (targetFormat === 'ESTUDIO_CLASE') {
+        doc = composeEstudioClase(prompt, availableCitations);
+      } else if (targetFormat === 'CELULA_JOVENES') {
+        doc = composeCelulaJovenes(prompt, availableCitations);
+      } else if (targetFormat === 'SERIE_CAMPANA') {
+        doc = composeSerieCampana(prompt, availableCitations);
+      } else if (targetFormat === 'PERFIL_PERSONAJE') {
+        doc = composePerfilPersonaje(prompt, availableCitations);
+      } else if (targetFormat === 'DOCTRINA_SISTEMATICA') {
+        doc = composeDoctrinaSistematica(prompt, availableCitations);
+      } else if (targetFormat === 'CEREMONIA_ESPECIAL') {
+        doc = composeCeremoniaEspecial(prompt, availableCitations);
+      }
+
+      if (doc) {
+        return wrapApprovedDocumentWithDialogue(doc, targetFormat, prompt);
+      }
     }
 
     // Determinar citas bíblicas prioritarias para rutas estándar
@@ -117,8 +132,50 @@ export class DynamicTheologicalComposer {
     // 1. RUTA: CREADOR DE ESTUDIO / HOMILÉTICA / ANÁLISIS EXEGÉTICO
     // =========================================================================
     if (route === '[CREADOR_ESTUDIO]') {
-      // 0. Si se solicita estudio detallado o exégesis de un versículo o pasaje específico (ej: Salmos 23:1, Juan 3:16)
+      const wantsHomileticPrep =
+        activeFormat !== 'AUTO' ||
+        lowerPrompt.includes('sermon') ||
+        lowerPrompt.includes('sermón') ||
+        lowerPrompt.includes('predica') ||
+        lowerPrompt.includes('prédica') ||
+        lowerPrompt.includes('bosquejo homil') ||
+        lowerPrompt.includes('culto') ||
+        lowerPrompt.includes('clase') ||
+        lowerPrompt.includes('leccion') ||
+        lowerPrompt.includes('lección') ||
+        lowerPrompt.includes('celula') ||
+        lowerPrompt.includes('célula');
+
+      // Si el usuario pide preparar un formato homilético sin haber aprobado aún, presentar Diálogo de Acuerdo
+      if (wantsHomileticPrep && !specificPassage?.isVerseSpecific) {
+        return composeDialogueAgreementProposal({
+          prompt,
+          route,
+          level,
+          firstCitation,
+          secondCitation,
+          detectedBook,
+          mirror,
+          userProfile,
+          suggestedFormat: activeFormat,
+        });
+      }
+
+      // Si se solicita estudio detallado o exégesis de un versículo o pasaje específico (ej: Salmos 23:1, Juan 3:16)
       if (specificPassage && (specificPassage.isVerseSpecific || specificPassage.isChapterSpecific)) {
+        if (wantsHomileticPrep) {
+          return composeDialogueAgreementProposal({
+            prompt,
+            route,
+            level,
+            firstCitation: specificPassage.formattedCitation,
+            secondCitation,
+            detectedBook: specificPassage.canonicalBook,
+            mirror,
+            userProfile,
+            suggestedFormat: activeFormat,
+          });
+        }
         return composeSpecificPassageExegesis(specificPassage, level, prompt, availableCitations);
       }
 
@@ -442,7 +499,8 @@ export class LocalDeterministicEngine implements InferenceEngine {
     groundTruthContext?: string,
     onToken?: (token: string) => void,
     userProfile?: UserEvolutionProfile | null,
-    format?: MinistryFormat
+    format?: MinistryFormat,
+    chatHistory?: ChatMessage[]
   ): Promise<string> {
     this.busy = true;
 
@@ -478,7 +536,7 @@ export class LocalDeterministicEngine implements InferenceEngine {
         }
       }
 
-      // 4. Sintetizador Exegético Dinámico Universal (Espejos Bíblicos + 66 libros + Ping-Pong + 7 Formatos)
+      // 4. Sintetizador Exegético Dinámico Universal (Espejos Bíblicos + 66 libros + Ping-Pong + 7 Formatos + Diálogo de Acuerdo)
       const responseTemplate = DynamicTheologicalComposer.compose(
         prompt,
         route,
@@ -486,7 +544,8 @@ export class LocalDeterministicEngine implements InferenceEngine {
         availableCitations,
         groundTruthContext,
         userProfile,
-        activeFormat
+        format,
+        chatHistory
       );
 
       // 5. Emulación de streaming de tokens respetando límite generoso
