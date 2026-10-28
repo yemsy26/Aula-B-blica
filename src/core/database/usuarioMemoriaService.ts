@@ -10,6 +10,8 @@ export interface ChatMessage {
   level?: UserTheologicalLevel;
   citations?: string[];
   isCrisis?: boolean;
+  /** La respuesta se cortó por el presupuesto del perfil y puede ampliarse. */
+  truncated?: boolean;
 }
 
 export interface ChatRecord {
@@ -105,6 +107,13 @@ export class UsuarioMemoriaService {
 
       CREATE INDEX IF NOT EXISTS idx_cuaderno_fecha 
       ON cuaderno_estudios (fecha_actualizacion DESC);
+
+      CREATE TABLE IF NOT EXISTS dialogue_states (
+        chat_id TEXT PRIMARY KEY,
+        state_json TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
+      );
     `);
 
     // Inicializar ficha maestra si no existe
@@ -250,7 +259,38 @@ export class UsuarioMemoriaService {
   }
 
   deleteChat(chatId: string): void {
+    this.db.execute('DELETE FROM dialogue_states WHERE chat_id = ?', [chatId]);
     this.db.execute('DELETE FROM chats WHERE id = ?', [chatId]);
+  }
+
+  // --- ESTADO DE DIÁLOGO POR CHAT ---
+
+  getDialogueState<T = unknown>(chatId: string): T | null {
+    const res = this.db.query<{ state_json: string }>(
+      'SELECT state_json FROM dialogue_states WHERE chat_id = ? LIMIT 1',
+      [chatId]
+    );
+
+    if (res.rows.length === 0) return null;
+
+    try {
+      return JSON.parse(res.rows[0].state_json) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  saveDialogueState(chatId: string, state: unknown): void {
+    const now = new Date().toISOString();
+    this.db.execute(
+      `INSERT OR REPLACE INTO dialogue_states (chat_id, state_json, updated_at)
+       VALUES (?, ?, ?)`,
+      [chatId, JSON.stringify(state), now]
+    );
+  }
+
+  deleteDialogueState(chatId: string): void {
+    this.db.execute('DELETE FROM dialogue_states WHERE chat_id = ?', [chatId]);
   }
 
   togglePinChat(chatId: string): boolean {

@@ -11,10 +11,45 @@ interface HomileticContext {
   fourthCitation: string;
 }
 
+/**
+ * Pasajes que forman parte del catálogo sembrado en SQLite y que, por tanto,
+ * el inyector puede resolver con texto literal. Nunca se inventan referencias
+ * de un libro: si la base no tiene el versículo, el lector vería
+ * «CITA NO ENCONTRADA», que rompe la promesa de fidelidad del documento.
+ */
+const VERIFIED_FALLBACK_CITATIONS = [
+  'Juan 3:16',
+  'Romanos 8:28',
+  'Salmos 23:1',
+  'Josué 1:9',
+];
+
+function uniqueCitations(values: Array<string | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (!trimmed) continue;
+
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    result.push(trimmed);
+  }
+
+  return result;
+}
+
+function fillCitations(pool: string[]): [string, string, string, string] {
+  const safe = pool.length > 0 ? pool : VERIFIED_FALLBACK_CITATIONS;
+  return [safe[0], safe[1] ?? safe[0], safe[2] ?? safe[1] ?? safe[0], safe[3] ?? safe[2] ?? safe[1] ?? safe[0]];
+}
+
 function resolveContext(prompt: string, availableCitations: string[]): HomileticContext {
   const book = findCanonicalBook(prompt);
   const mirror = findBiblicalMirror(prompt);
-  const lower = prompt.toLowerCase();
 
   let topic = prompt
     .replace(/(?:quiero|necesito|un|una|estudio|bosquejo|sermon|sermón|predica|prédica|para|dar|el|un|culto|clase|sobre|de|en|los|las)\s+/gi, ' ')
@@ -30,30 +65,15 @@ function resolveContext(prompt: string, availableCitations: string[]): Homiletic
   // Capitalizar tema
   topic = topic.charAt(0).toUpperCase() + topic.slice(1);
 
-  // Determinar 4 citas bíblicas sólidas
-  let c1 = availableCitations[0];
-  let c2 = availableCitations[1];
-  let c3 = availableCitations[2];
-  let c4 = availableCitations[3];
+  // Solo se usan citas verificadas por el RAG. Los versículos clave del perfil
+  // del libro son orientativos y pueden no existir en la base local; por eso
+  // ya no se añaden como relleno.
+  const citationPool = uniqueCitations([
+    ...availableCitations,
+    ...VERIFIED_FALLBACK_CITATIONS,
+  ]);
 
-  if (book) {
-    const refs = book.versiculosClaveRefs;
-    if (!c1) c1 = `${book.nombre} ${refs[0] || '1:1'}`;
-    if (!c2) c2 = `${book.nombre} ${refs[1] || refs[0] || '1:16'}`;
-    if (!c3) c3 = `${book.nombre} ${refs[2] || refs[1] || '8:28'}`;
-    if (!c4) c4 = `${book.nombre} ${refs[3] || refs[2] || '12:1'}`;
-  } else if (mirror) {
-    const vc = mirror.versiculosClave;
-    if (!c1) c1 = vc[0] || 'Salmos 23:1';
-    if (!c2) c2 = vc[1] || 'Filipenses 4:13';
-    if (!c3) c3 = 'Jeremías 29:11';
-    if (!c4) c4 = 'Romanos 8:28';
-  } else {
-    if (!c1) c1 = lower.includes('pastor') ? 'Salmos 23:1' : 'Juan 3:16';
-    if (!c2) c2 = 'Romanos 8:28';
-    if (!c3) c3 = 'Filipenses 4:6-7';
-    if (!c4) c4 = 'Josué 1:9';
-  }
+  const [c1, c2, c3, c4] = fillCitations(citationPool);
 
   return { prompt, book, topic, firstCitation: c1, secondCitation: c2, thirdCitation: c3, fourthCitation: c4 };
 }

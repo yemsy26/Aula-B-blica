@@ -23,10 +23,15 @@ export const THEOLOGICAL_THEMES: TheologicalTheme[] = [
     librosRecomendados: ['Salmos', 'Filipenses', 'Isaías', 'Mateo'],
     codigosStrongRecomendados: ['H7965', 'G4102'], // Shalom, Pistis
     versiculosClave: [
+      // Paz propiamente dicha: el tema debe apuntar a los textos que hablan
+      // de paz, no sólo a promesas generales de consuelo.
+      { libro: 'Filipenses', capitulo: 4, versiculo: 6 },
+      { libro: 'Filipenses', capitulo: 4, versiculo: 7 },
+      { libro: 'Romanos', capitulo: 5, versiculo: 1 },
+      { libro: 'Hebreos', capitulo: 13, versiculo: 20 },
       { libro: 'Salmos', capitulo: 23, versiculo: 4 },
       { libro: 'Isaías', capitulo: 41, versiculo: 10 },
       { libro: 'Mateo', capitulo: 11, versiculo: 28 },
-      { libro: 'Filipenses', capitulo: 4, versiculo: 13 },
     ],
   },
   {

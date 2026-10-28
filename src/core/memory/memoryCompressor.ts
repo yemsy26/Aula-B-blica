@@ -97,7 +97,9 @@ export class MemoryCompressor {
     let nivelMasAlto: UserTheologicalLevel = 'Semilla';
 
     for (const msg of messages) {
-      const text = msg.content;
+      // Los marcadores de cita no resuelta no son pasajes verificados: si se
+      // conservan, la memoria aprende referencias que la base local no tiene.
+      const text = msg.content.replace(/\[CITA NO ENCONTRADA EN DB LOCAL:[^\]]*\]/gi, ' ');
 
       // 1. Detectar dudas / preguntas formuladas por el usuario
       if (msg.role === 'user') {

@@ -64,6 +64,35 @@ describe('Compresor de Memoria Global Asíncrono - Destilador en Tiempo Muerto',
     expect(snapshot?.nivelPercibido).toBe('Discipulo');
   });
 
+  it('no memoriza como ancla un pasaje que la base local no pudo resolver', async () => {
+    const messages: ChatMessage[] = [
+      {
+        id: 'm1',
+        role: 'user',
+        content: 'prepara un sermón sobre Filipenses 4:6-7',
+        timestamp: new Date().toISOString(),
+        level: 'Semilla',
+        route: '[CREADOR_ESTUDIO]',
+      },
+      {
+        id: 'm2',
+        role: 'assistant',
+        content:
+          'Texto áureo: [CITA NO ENCONTRADA EN DB LOCAL: Filipenses 1:21]. Lectura base: Filipenses 4:6-7.',
+        timestamp: new Date().toISOString(),
+        level: 'Semilla',
+        route: '[CREADOR_ESTUDIO]',
+      },
+    ];
+
+    compressor.scheduleCompression('chat_3', messages);
+    const snapshot = await compressor.flushNow();
+
+    expect(snapshot).not.toBeNull();
+    expect(snapshot?.versiculosClave).not.toContain('Filipenses 1:21');
+    expect(snapshot?.versiculosClave).toContain('Filipenses 4:6-7');
+  });
+
   it('debe garantizar que la síntesis de cruce global no supere las 300 palabras', async () => {
     const messages: ChatMessage[] = [
       {

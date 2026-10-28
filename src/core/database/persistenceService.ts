@@ -21,6 +21,9 @@ export async function loadOrInitBibliaDatabase(): Promise<{
     try {
       adapter = await SqlJsDatabaseAdapter.create(binaryData);
       const service = new BibliaCoreService(adapter);
+      // Aplica migraciones idempotentes (nuevas tablas, FTS y semillas faltantes).
+      await service.initializeSchemaAndSeeds();
+      await persistBibliaDatabase(service);
       return { adapter, service, wasLoadedFromStorage: true };
     } catch (err) {
       console.warn('Error cargando biblia_core.sqlite desde almacenamiento persistente, recreando:', err);
@@ -49,6 +52,9 @@ export async function loadOrInitUsuarioDatabase(): Promise<{
     try {
       adapter = await SqlJsDatabaseAdapter.create(binaryData);
       const service = new UsuarioMemoriaService(adapter);
+      // Crea tablas nuevas (p. ej. dialogue_states) en bases ya existentes.
+      await service.initializeSchema();
+      await persistUsuarioDatabase(service);
       return { adapter, service, wasLoadedFromStorage: true };
     } catch (err) {
       console.warn('Error cargando usuario_memoria.sqlite desde almacenamiento persistente, recreando:', err);
