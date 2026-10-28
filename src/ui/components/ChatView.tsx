@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage, ChatRecord } from '../../core/database/usuarioMemoriaService.js';
 import { UserTheologicalLevel, ShieldProcessingResult, MinistryFormat } from '../../core/shield/types.js';
+import { DialogueMode, DialoguePhase } from '../../core/dialogue/types.js';
 import { LevelSelector } from './LevelSelector.js';
 import { CrisisBanner } from './CrisisBanner.js';
 import {
@@ -10,7 +11,7 @@ import {
   Copy,
   CheckCircle,
   ShieldCheck,
-  Sparkles,
+  ShieldAlert,
   Volume2,
   Square,
   Menu,
@@ -18,6 +19,8 @@ import {
   HelpCircle,
   Settings,
   BookOpen,
+  Loader2,
+  ArrowRight,
 } from 'lucide-react';
 import { offlineTts } from '../../core/tts/offlineTtsService.js';
 import { DailyBreadCardData } from '../../core/retention/types.js';
@@ -44,6 +47,12 @@ interface ChatViewProps {
   onToggleMobileSidebar?: () => void;
   onOpenWelcomeGuide?: () => void;
   onOpenSettings?: () => void;
+  onCancelGeneration?: () => void;
+  activeBrainLabel?: string;
+  brainActivity?: 'idle' | 'loading' | 'prefill' | 'generating';
+  dialogueMode?: DialogueMode;
+  onChangeDialogueMode?: (mode: DialogueMode) => void;
+  dialoguePhase?: DialoguePhase;
 }
 
 const LEVEL_ACCENTS: Record<UserTheologicalLevel, {
@@ -77,6 +86,24 @@ const FORMAT_PILLS: { id: MinistryFormat; label: string }[] = [
   { id: 'CONSEJERIA_DIALOGO', label: '💬 Consejería' },
 ];
 
+const DIALOGUE_MODES: { id: DialogueMode; label: string; title: string }[] = [
+  { id: 'AUTO', label: 'Auto', title: 'Decide si responder, preguntar, proponer o redactar' },
+  { id: 'CONSULTA', label: 'Consulta', title: 'Respuesta directa y conversacional' },
+  { id: 'ESTUDIO', label: 'Estudio', title: 'Exégesis y análisis profundo, sin documento extenso' },
+  { id: 'CONSEJERIA', label: 'Consejería', title: 'Acompañamiento pastoral con límites claros' },
+  { id: 'DOCUMENTO', label: 'Documento', title: 'Preparar un sermón, clase o material completo' },
+];
+
+const PHASE_LABELS: Record<DialoguePhase, string> = {
+  IDLE: '',
+  DISCOVER: 'Explorando',
+  CLARIFY: 'Aclarando',
+  PROPOSE: 'Propuesta lista',
+  CONFIRM: 'Confirmación',
+  GENERATE: 'Redactando',
+  FOLLOW_UP: 'En diálogo',
+};
+
 // Función auxiliar para parsear markdown simple (negrita, cursiva, código)
 const renderFormattedInline = (text: string) => {
   const parts = text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g);
@@ -109,11 +136,124 @@ const renderFormattedInline = (text: string) => {
   });
 };
 
+const splitTableRow = (line: string): string[] =>
+  line
+    .replace(/^\s*\|/, '')
+    .replace(/\|\s*$/, '')
+    .split('|')
+    .map((cell) => cell.trim());
+
+const isTableSeparator = (line: string): boolean =>
+  /^\s*\|?[\s:|-]*-{3,}[\s:|-]*\|?\s*$/.test(line);
+
+const isTableBlock = (block: string): boolean => {
+  const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
+  return (
+    lines.length >= 2 &&
+    lines.every((line) => line.includes('|')) &&
+    isTableSeparator(lines[1])
+  );
+};
+
+const headingClass = (level: number): string => {
+  if (level <= 1) return 'text-base sm:text-lg mt-3 mb-1.5';
+  if (level === 2) return 'text-sm sm:text-base mt-2.5 mb-1';
+  if (level === 3) return 'text-xs sm:text-sm mt-2 mb-1';
+  return 'text-[11px] sm:text-xs mt-1.5 mb-0.5 uppercase tracking-wide';
+};
+
+const BULLET_PATTERN = /^[-*+]\s+/;
+const ORDERED_PATTERN = /^\d+[.)]\s+/;
+const HEADING_PATTERN = /^(#{1,4})\s+(.+)$/;
+
+/**
+ * Renderiza líneas sueltas de un bloque: encabezados, listas, separadores y párrafos.
+ * Un mismo bloque puede mezclar todo lo anterior cuando el modelo usa saltos simples.
+ */
+const renderBodyLines = (lines: string[], keyPrefix: string): React.ReactNode[] => {
+  const clean = lines.map((line) => line.trim()).filter(Boolean);
+  const nodes: React.ReactNode[] = [];
+  let index = 0;
+
+  while (index < clean.length) {
+    const line = clean[index];
+
+    if (/^-{3,}$/.test(line)) {
+      nodes.push(<hr key={`${keyPrefix}-hr-${index}`} className="my-2 border-nocturne-800" />);
+      index++;
+      continue;
+    }
+
+    const headingMatch = line.match(HEADING_PATTERN);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      nodes.push(
+        <h4
+          key={`${keyPrefix}-h-${index}`}
+          className={`font-serif font-bold text-parchment-100 ${headingClass(level)}`}
+        >
+          {renderFormattedInline(headingMatch[2])}
+        </h4>
+      );
+      index++;
+      continue;
+    }
+
+    if (BULLET_PATTERN.test(line) || ORDERED_PATTERN.test(line)) {
+      const ordered = ORDERED_PATTERN.test(line);
+      const pattern = ordered ? ORDERED_PATTERN : BULLET_PATTERN;
+      const items: string[] = [];
+
+      while (index < clean.length && pattern.test(clean[index])) {
+        items.push(clean[index].replace(pattern, ''));
+        index++;
+      }
+
+      nodes.push(
+        ordered ? (
+          <ol
+            key={`${keyPrefix}-ol-${index}`}
+            className="list-decimal pl-5 space-y-1 marker:text-sacred-gold marker:font-semibold"
+          >
+            {items.map((item, itemIdx) => (
+              <li key={itemIdx} className="leading-relaxed">
+                {renderFormattedInline(item)}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <ul
+            key={`${keyPrefix}-ul-${index}`}
+            className="list-disc pl-5 space-y-1 marker:text-sacred-gold"
+          >
+            {items.map((item, itemIdx) => (
+              <li key={itemIdx} className="leading-relaxed">
+                {renderFormattedInline(item)}
+              </li>
+            ))}
+          </ul>
+        )
+      );
+      continue;
+    }
+
+    nodes.push(
+      <p key={`${keyPrefix}-p-${index}`} className="leading-relaxed">
+        {renderFormattedInline(line)}
+      </p>
+    );
+    index++;
+  }
+
+  return nodes;
+};
+
 // Renderizador estructurado de contenido teológico y citas canónicas
 const renderMessageContent = (content: string, onActionClick?: (actionText: string) => void) => {
   const blocks = content.split(/\n\n+/);
   return blocks.map((block, bIdx) => {
     const trimmed = block.trim();
+    if (!trimmed) return null;
 
     // Bloque de Cita Canónica Inmutable
     if (trimmed.startsWith('>')) {
@@ -147,12 +287,61 @@ const renderMessageContent = (content: string, onActionClick?: (actionText: stri
       );
     }
 
-    // Encabezados Markdown
-    if (trimmed.startsWith('###')) {
+    // Tablas Markdown (| columna | columna |)
+    if (isTableBlock(trimmed)) {
+      const lines = trimmed.split('\n').map((line) => line.trim()).filter(Boolean);
+      const header = splitTableRow(lines[0]);
+      const rows = lines.slice(2).map(splitTableRow);
+
       return (
-        <h4 key={bIdx} className="font-serif font-bold text-xs sm:text-sm text-parchment-100 mt-2 mb-1">
-          {trimmed.replace(/^###\s*/, '')}
-        </h4>
+        <div key={bIdx} className="my-2 overflow-x-auto rounded-lg border border-nocturne-800">
+          <table className="w-full border-collapse text-[11px] sm:text-xs">
+            <thead className="bg-nocturne-850/80">
+              <tr>
+                {header.map((cell, cIdx) => (
+                  <th
+                    key={cIdx}
+                    className="px-2.5 py-1.5 text-left font-semibold text-sacred-gold-light border-b border-nocturne-800 whitespace-nowrap"
+                  >
+                    {renderFormattedInline(cell)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rIdx) => (
+                <tr key={rIdx} className="odd:bg-nocturne-900/40">
+                  {header.map((_, cIdx) => (
+                    <td
+                      key={cIdx}
+                      className="px-2.5 py-1.5 align-top border-b border-nocturne-800/60 text-zinc-300"
+                    >
+                      {renderFormattedInline(row[cIdx] ?? '')}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    // Encabezados Markdown (#, ##, ###, ####), con posible cuerpo en el mismo bloque
+    const firstNewline = trimmed.indexOf('\n');
+    const firstLine = firstNewline === -1 ? trimmed : trimmed.slice(0, firstNewline);
+    const restOfBlock = firstNewline === -1 ? '' : trimmed.slice(firstNewline + 1);
+    const headingMatch = firstLine.match(HEADING_PATTERN);
+
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      return (
+        <div key={bIdx} className="space-y-1">
+          <h4 className={`font-serif font-bold text-parchment-100 ${headingClass(level)}`}>
+            {renderFormattedInline(headingMatch[2])}
+          </h4>
+          {renderBodyLines(restOfBlock.split('\n'), `${bIdx}-body`)}
+        </div>
       );
     }
 
@@ -164,11 +353,7 @@ const renderMessageContent = (content: string, onActionClick?: (actionText: stri
         <div key={bIdx} className="space-y-2">
           {textWithoutAgreements && (
             <div className="space-y-1">
-              {textWithoutAgreements.split('\n').map((line, lIdx) => (
-                <p key={lIdx} className="leading-relaxed">
-                  {renderFormattedInline(line)}
-                </p>
-              ))}
+              {renderBodyLines(textWithoutAgreements.split('\n'), `${bIdx}-agreement`)}
             </div>
           )}
           <div className="pt-1 flex flex-wrap gap-2">
@@ -196,14 +381,39 @@ const renderMessageContent = (content: string, onActionClick?: (actionText: stri
       return <hr key={bIdx} className="my-2 border-nocturne-800" />;
     }
 
-    // Párrafos convencionales
+    // Listas ordenadas y no ordenadas
+    const listLines = trimmed.split('\n').map((line) => line.trim()).filter(Boolean);
+    const isUnorderedList = listLines.length > 0 && listLines.every((line) => /^[-*+]\s+/.test(line));
+    const isOrderedList = listLines.length > 0 && listLines.every((line) => /^\d+[.)]\s+/.test(line));
+
+    if (isUnorderedList || isOrderedList) {
+      const items = listLines.map((line) =>
+        line.replace(isOrderedList ? /^\d+[.)]\s+/ : /^[-*+]\s+/, '')
+      );
+
+      return isOrderedList ? (
+        <ol key={bIdx} className="list-decimal pl-5 space-y-1 marker:text-sacred-gold marker:font-semibold">
+          {items.map((item, iIdx) => (
+            <li key={iIdx} className="leading-relaxed">
+              {renderFormattedInline(item)}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <ul key={bIdx} className="list-disc pl-5 space-y-1 marker:text-sacred-gold">
+          {items.map((item, iIdx) => (
+            <li key={iIdx} className="leading-relaxed">
+              {renderFormattedInline(item)}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
+    // Párrafos, listas y encabezados mezclados en un mismo bloque
     return (
       <div key={bIdx} className="space-y-1">
-        {block.split('\n').map((line, lIdx) => (
-          <p key={lIdx} className="leading-relaxed">
-            {renderFormattedInline(line)}
-          </p>
-        ))}
+        {renderBodyLines(block.split('\n'), `${bIdx}-mixed`)}
       </div>
     );
   });
@@ -225,6 +435,12 @@ export const ChatView: React.FC<ChatViewProps> = ({
   onToggleMobileSidebar,
   onOpenWelcomeGuide,
   onOpenSettings,
+  onCancelGeneration,
+  activeBrainLabel,
+  brainActivity = 'idle',
+  dialogueMode = 'AUTO',
+  onChangeDialogueMode,
+  dialoguePhase = 'IDLE',
 }) => {
   const [inputText, setInputText] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -233,6 +449,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [isCrisisDismissed, setIsCrisisDismissed] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<MinistryFormat>('AUTO');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const lastAssistantId = chat?.mensajes.reduce<string | undefined>(
+    (last, message) => (message.role === 'assistant' ? message.id : last),
+    undefined
+  );
 
   const handleQuickPrompt = (promptText: string) => {
     setInputText('');
@@ -269,8 +489,11 @@ export const ChatView: React.FC<ChatViewProps> = ({
     e.preventDefault();
     if (!inputText.trim() || isGenerating) return;
     const msg = inputText;
+    const formatForTurn = selectedFormat;
     setInputText('');
-    await onSendMessage(msg, selectedFormat);
+    // El formato elegido aplica solo a este turno; después vuelve a Auto.
+    setSelectedFormat('AUTO');
+    await onSendMessage(msg, formatForTurn);
   };
 
   const copyText = async (id: string, text: string) => {
@@ -308,8 +531,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
                 </span>
               )}
             </h2>
-            <p className="hidden md:block text-[11px] text-zinc-400 mt-0.5">
-              Canon {activeBibleVersion || 'RV1909'} · Exégesis Edge Inmutable · 100% Offline
+            <p className="hidden md:block text-[11px] text-zinc-400 mt-0.5 truncate">
+              Canon {activeBibleVersion || 'RV1909'} · {activeBrainLabel || 'Motor local determinista'}
+              {brainActivity === 'loading' && ' · cargando cerebro…'}
+              {brainActivity === 'prefill' && ' · procesando contexto…'}
             </p>
           </div>
         </div>
@@ -384,8 +609,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   Bienvenido a VerboVivo
                 </h3>
                 <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto leading-relaxed">
-                  Tu asistente bíblico y pastoral <strong>100% Offline</strong> con memoria global evolutiva,
-                  canon inmutable RV1909 y cero alucinaciones doctrinales.
+                  Tu asistente bíblico y pastoral con memoria evolutiva, canon verificado y motor local
+                  determinista. Puedes conectar un modelo propio (Ollama o LM Studio) sin cambiar el flujo.
                 </p>
               </div>
 
@@ -482,6 +707,13 @@ export const ChatView: React.FC<ChatViewProps> = ({
         ) : (
           chat.mensajes.map((msg) => {
             const isUser = msg.role === 'user';
+            // Solo afirmamos «Citas Exactas» cuando el turno trae citas
+            // verificadas contra SQLite (o el bloque textual que añadimos
+            // nosotros). Un modelo local puede responder sin citar nada; en
+            // ese caso el distintivo debe ser honesto y no un sello vacío.
+            const hasVerifiedCitations =
+              (msg.citations?.length ?? 0) > 0 ||
+              msg.content.includes('Texto bíblico verificado');
 
             return (
               <div
@@ -520,11 +752,36 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   {!isUser && (
                     <div className="mt-2.5 pt-2 border-t border-nocturne-800 flex flex-wrap items-center justify-between gap-1.5 text-[10px] sm:text-[11px] text-zinc-400">
                       <div className="flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="font-mono text-[9px] sm:text-[10px]">Citas Exactas {activeBibleVersion || 'RV1909'}</span>
+                        {hasVerifiedCitations ? (
+                          <>
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            <span className="font-mono text-[9px] sm:text-[10px]">
+                              Citas Exactas {activeBibleVersion || 'RV1909'}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <ShieldAlert className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                            <span className="font-mono text-[9px] sm:text-[10px] text-zinc-500">
+                              Sin citas verificadas
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        {msg.id === lastAssistantId && msg.truncated && (
+                          <button
+                            type="button"
+                            disabled={isGenerating}
+                            onClick={() => onSendMessage('continúa', 'AUTO')}
+                            className="flex items-center gap-1 px-2.5 sm:px-2 py-1 sm:py-0.5 rounded-lg bg-sacred-gold/15 hover:bg-sacred-gold/25 text-sacred-gold border border-sacred-gold/40 transition-all text-[11px] sm:text-[11px] cursor-pointer touch-manipulation active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Continuar esta respuesta desde donde se cortó"
+                          >
+                            <ArrowRight className="w-3 h-3" />
+                            <span>Ampliar</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => toggleSpeak(msg.id, msg.content)}
@@ -574,6 +831,28 @@ export const ChatView: React.FC<ChatViewProps> = ({
             );
           })
         )}
+        {isGenerating && !streamingText && (
+          <div className="flex flex-col items-start smooth-gpu">
+            <div className="flex items-center gap-2 mb-1 px-1">
+              <span className="text-[10px] font-mono text-zinc-400">
+                VerboVivo ({brainActivity === 'loading' ? 'cargando cerebro local...' : brainActivity === 'prefill' ? 'procesando contexto...' : 'preparando respuesta...'})
+              </span>
+            </div>
+            <div className="relative max-w-[92%] sm:max-w-2xl p-3 sm:p-4 rounded-2xl rounded-tl-none bg-nocturne-900 text-zinc-300 border border-sacred-gold/30 text-xs sm:text-sm shadow-sm">
+              <div className="flex items-start gap-2.5">
+                <Loader2 className="w-4 h-4 animate-spin text-sacred-gold shrink-0 mt-0.5" />
+                <span className="leading-relaxed">
+                  {brainActivity === 'loading'
+                    ? 'Cargando el modelo GGUF en este dispositivo. La primera vez puede tardar un minuto; después la conversación es más rápida.'
+                    : brainActivity === 'prefill'
+                      ? `Procesando el contexto bíblico en el dispositivo${activeBrainLabel?.includes('nativo') ? ' con llama.cpp nativo' : ' con el motor GGUF local'}. Esta etapa y la respuesta pueden tardar según el modelo y el equipo; puedes cancelar cuando quieras.`
+                      : 'Preparando la respuesta con el texto bíblico verificado...'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {isGenerating && streamingText && (
           <div className="flex flex-col items-start smooth-gpu">
             <div className="flex items-center gap-2 mb-1 px-1">
@@ -614,7 +893,36 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
           {/* Caja Flotante de Vidrio con Formatos Ministeriales y Área de Escritura */}
           <div className={`bg-nocturne-900/90 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-nocturne-800 shadow-2xl p-2.5 sm:p-3 transition-all ${LEVEL_ACCENTS[currentLevel]?.focusClass || 'focus-within:border-sacred-gold/50'}`}>
-            {/* Selector Rápido de Formatos Ministeriales */}
+            {/* Selector de Modo de Diálogo: Auto, Consulta, Estudio, Consejería o Documento */}
+            {onChangeDialogueMode && (
+              <div className="flex items-center gap-2 px-1 pb-1.5">
+                <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500 shrink-0">
+                  Modo
+                </span>
+                <select
+                  value={dialogueMode}
+                  onChange={(e) => onChangeDialogueMode(e.target.value as DialogueMode)}
+                  className="bg-nocturne-850 border border-nocturne-800 hover:border-sacred-gold/40 rounded-lg text-[10px] sm:text-[11px] px-2 py-1 text-zinc-200 focus:outline-none focus:border-sacred-gold/60 cursor-pointer"
+                  title="Define cómo debe responder VerboVivo en este chat"
+                >
+                  {DIALOGUE_MODES.map((mode) => (
+                    <option key={mode.id} value={mode.id} className="bg-nocturne-900 text-zinc-200">
+                      {mode.label}
+                    </option>
+                  ))}
+                </select>
+                {dialoguePhase !== 'IDLE' && PHASE_LABELS[dialoguePhase] && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-sacred-gold/10 text-sacred-gold border border-sacred-gold/30 font-mono shrink-0">
+                    {PHASE_LABELS[dialoguePhase]}
+                  </span>
+                )}
+                <span className="ml-auto hidden sm:inline text-[9px] text-zinc-500 truncate">
+                  {DIALOGUE_MODES.find((mode) => mode.id === dialogueMode)?.title}
+                </span>
+              </div>
+            )}
+
+            {/* Selector Rápido de Formatos Ministeriales (aplica solo al siguiente mensaje) */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none text-[11px] px-1">
               {FORMAT_PILLS.map((pill) => (
                 <button
@@ -671,25 +979,31 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   </span>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={!inputText.trim() || isGenerating}
-                  className={`px-3 py-1.5 rounded-xl bg-gradient-to-r from-sacred-gold to-sacred-gold-light text-nocturne-950 font-bold shadow-md transition-all duration-200 flex items-center gap-1.5 shrink-0 ${
-                    !inputText.trim() || isGenerating
-                      ? 'opacity-40 cursor-not-allowed'
-                      : 'hover:scale-105 active:scale-95 cursor-pointer shadow-sacred-gold/20'
-                  }`}
-                  title="Enviar consulta"
-                >
-                  {isGenerating ? (
-                    <Sparkles className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <span className="hidden sm:inline text-xs font-semibold">Consultar</span>
-                      <Send className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
+                {isGenerating ? (
+                  <button
+                    type="button"
+                    onClick={onCancelGeneration}
+                    className="px-3 py-1.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-200 border border-rose-500/50 font-bold shadow-md transition-all flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
+                    title="Detener la generación en curso"
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span className="hidden sm:inline text-xs font-semibold">Detener</span>
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!inputText.trim()}
+                    className={`px-3 py-1.5 rounded-xl bg-gradient-to-r from-sacred-gold to-sacred-gold-light text-nocturne-950 font-bold shadow-md transition-all duration-200 flex items-center gap-1.5 shrink-0 ${
+                      !inputText.trim()
+                        ? 'opacity-40 cursor-not-allowed'
+                        : 'hover:scale-105 active:scale-95 cursor-pointer shadow-sacred-gold/20'
+                    }`}
+                    title="Enviar consulta"
+                  >
+                    <span className="hidden sm:inline text-xs font-semibold">Consultar</span>
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             </form>
           </div>

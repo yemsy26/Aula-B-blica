@@ -54,6 +54,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   if (!isOpen) return null;
 
+  const ttsState = offlineTts.getState();
+  const availableVoices = offlineTts.getVoices();
+  const activeVoice = availableVoices.find(
+    (v) => v.name === ttsState.selectedVoiceName || v.voiceURI === ttsState.selectedVoiceName
+  );
+  const activeVoiceLabel = activeVoice?.displayName || activeVoice?.name || 'Voz del sistema';
+
   const LEVELS: {
     id: UserTheologicalLevel;
     label: string;
@@ -305,17 +312,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </span>
                   </div>
 
-                  <div className="pt-2 border-t border-nocturne-850 flex items-center justify-between text-xs text-zinc-300">
-                    <span>Modo de Voz:</span>
-                    <strong className="text-sacred-gold font-mono">
-                      {offlineTts.getState().activeEngineMode === 'PIPER_HD_OFFLINE'
-                        ? 'Piper Neural HD (ONNX/WASM)'
-                        : 'Voces Neurales HD del Sistema'}
+                  <div className="pt-2 border-t border-nocturne-850 flex items-center justify-between gap-3 text-xs text-zinc-300">
+                    <span className="shrink-0">Voz activa:</span>
+                    <strong className="text-sacred-gold font-mono text-right truncate">
+                      {activeVoiceLabel}
+                    </strong>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 text-xs text-zinc-300">
+                    <span>Voces en español instaladas:</span>
+                    <strong className="text-parchment-100 font-mono">
+                      {availableVoices.length}
                     </strong>
                   </div>
 
                   <p className="text-[11px] text-zinc-400 leading-relaxed bg-nocturne-900/60 p-2.5 rounded-xl border border-nocturne-850">
-                    💡 Durante la reproducción de cualquier mensaje bíblico, puedes cambiar la voz o pausar la lectura desde la barra flotante de audio.
+                    💡 Durante la reproducción de cualquier mensaje bíblico, puedes cambiar la voz o pausar la lectura desde la barra flotante de audio. Solo se muestran las voces que el sistema Android tiene instaladas.
                   </p>
                 </div>
               </div>
@@ -421,7 +433,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Pie del Modal */}
         <div className="p-3 sm:p-4 border-t border-nocturne-800 bg-nocturne-950/90 flex items-center justify-between text-xs text-zinc-400">
           <span className="font-mono text-[11px]">
-            VerboVivo v1.0.0 · 100% Offline
+            VerboVivo v1.0.0 · Motor local y conexión opcional
           </span>
           <button
             type="button"

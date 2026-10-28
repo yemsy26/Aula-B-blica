@@ -2,7 +2,10 @@ export type VoiceTier = 'TIER_1_NEURAL' | 'TIER_2_REGIONAL' | 'TIER_3_STANDARD';
 
 export interface TtsVoiceOption {
   voiceIndex: number;
+  /** Identificador estable con el que se selecciona y se recuerda la voz. */
   name: string;
+  /** URI que espera el motor TTS del sistema (en Android coincide con el nombre del motor). */
+  voiceURI?: string;
   lang: string;
   isDefault: boolean;
   isLocalService: boolean;
@@ -13,21 +16,17 @@ export interface TtsVoiceOption {
   displayName?: string;
 }
 
-export type TtsEngineMode = 'SYSTEM_NEURAL' | 'PIPER_HD_OFFLINE';
-
 export interface TtsState {
   isPlaying: boolean;
   isPaused: boolean;
   rate: number; // 0.8 a 1.5
   pitch: number;
+  /** URI de la voz elegida; se valida contra las voces reales del dispositivo. */
   selectedVoiceName?: string;
   currentUtteranceText?: string;
   currentChunkIndex: number;
   totalChunks: number;
   currentChunkKind?: 'title' | 'verse' | 'narrative';
-  activeEngineMode: TtsEngineMode;
-  activePiperModelId?: string;
-  piperDownloadProgress?: number;
 }
 
 export interface TtsController {
@@ -39,7 +38,6 @@ export interface TtsController {
   previousChunk(): void;
   setRate(rate: number): void;
   setVoice(voiceName: string): void;
-  setEngineMode(mode: TtsEngineMode): void;
   getVoices(): TtsVoiceOption[];
   getState(): TtsState;
   cleanTextForSpeech(text: string): string;

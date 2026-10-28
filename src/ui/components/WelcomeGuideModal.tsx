@@ -46,7 +46,7 @@ export const WelcomeGuideModal: React.FC<WelcomeGuideModalProps> = ({
               <h3 className="font-serif font-bold text-sm sm:text-base text-parchment-100 flex items-center gap-2">
                 <span>Guía de Bienvenida · VerboVivo</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono hidden sm:inline-block">
-                  100% Offline
+                  Motor local + modelo opcional
                 </span>
               </h3>
               <p className="text-[11px] sm:text-xs text-zinc-400">

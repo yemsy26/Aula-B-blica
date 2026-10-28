@@ -1,7 +1,7 @@
 {
-  "name": "VerboVivo — Estudio Bíblico, Exégesis y Homilética Offline",
+  "name": "VerboVivo — Estudio Bíblico, Exégesis y Homilética",
   "short_name": "VerboVivo",
-  "description": "Plataforma de estudio bíblico, exégesis histórica y homilética multiformato 100% Offline con preservación canónica inmutable",
+  "description": "Plataforma offline-first de estudio bíblico, exégesis y homilética con preservación canónica inmutable y modelo local opcional",
   "start_url": "/",
   "id": "/",
   "scope": "/",

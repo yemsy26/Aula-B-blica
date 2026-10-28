@@ -7,8 +7,8 @@ import {
   offlineTts,
   scoreVoice,
   rankVoices,
+  buildDeviceVoiceOptions,
   ProsodyChunker,
-  piperNeuralTts,
 } from '../core/tts/index.js';
 import { BibleImporter } from '../core/importer/bibleImporter.js';
 import {
@@ -68,21 +68,50 @@ describe('Motor de Voz Offline (TTS) y Limpiador Fonético', () => {
     expect(ranked[0].tier).toBe('TIER_1_NEURAL');
   });
 
-  it('debe exponer el catálogo unificado de Voces Naturales HD para Android y Web', () => {
+  it('no inventa voces: en un entorno sin motor TTS la lista queda vacía', () => {
     const voices = offlineTts.getVoices();
-    expect(voices.length).toBeGreaterThanOrEqual(7);
+    expect(voices).toEqual([]);
 
-    const naturalVoices = voices.filter((v) => v.tier === 'TIER_1_NEURAL');
-    expect(naturalVoices.length).toBeGreaterThanOrEqual(7);
+    const names = voices.map((v) => v.name).join(' ');
+    expect(names).not.toMatch(/Jorge|Dalia|Álvaro|Elvira|Paloma|Gonzalo|Salomé/);
+  });
 
-    const names = voices.map((v) => v.name);
-    expect(names.some((n) => n.includes('Jorge'))).toBe(true);
-    expect(names.some((n) => n.includes('Dalia'))).toBe(true);
-    expect(names.some((n) => n.includes('Álvaro'))).toBe(true);
-    expect(names.some((n) => n.includes('Elvira'))).toBe(true);
-    expect(names.some((n) => n.includes('Paloma'))).toBe(true);
-    expect(names.some((n) => n.includes('Gonzalo'))).toBe(true);
-    expect(names.some((n) => n.includes('Salomé'))).toBe(true);
+  it('convierte las voces del sistema en opciones reales y elimina alias y duplicados local/red', () => {
+    const options = buildDeviceVoiceOptions([
+      { voiceURI: 'es-es-x-eea-local', lang: 'es-ES', localService: true },
+      { voiceURI: 'es-es-x-eea-network', lang: 'es-ES', localService: false },
+      { voiceURI: 'es-ES-language', lang: 'es-ES', localService: true },
+      { voiceURI: 'en-us-x-sfg-local', lang: 'en-US', localService: true },
+    ]);
+
+    expect(options).toHaveLength(1);
+    expect(options[0].name).toBe('es-es-x-eea-local');
+    expect(options[0].voiceURI).toBe('es-es-x-eea-local');
+    expect(options[0].isLocalService).toBe(true);
+  });
+
+  it('conserva una voz de red cuando no existe su variante local', () => {
+    const options = buildDeviceVoiceOptions([
+      { voiceURI: 'es-us-x-esc-network', lang: 'es-US', localService: false },
+    ]);
+
+    expect(options).toHaveLength(1);
+    expect(options[0].isLocalService).toBe(false);
+    expect(options[0].name).toBe('es-us-x-esc-network');
+  });
+
+  it('prefiere una voz local sobre una de red y muestra etiquetas honestas', () => {
+    const options = buildDeviceVoiceOptions([
+      { voiceURI: 'es-es-x-eea-network', lang: 'es-ES', localService: false },
+      { voiceURI: 'es-us-x-esc-local', lang: 'es-US', localService: true },
+    ]);
+    const ranked = rankVoices(options);
+
+    expect(ranked).toHaveLength(2);
+    expect(ranked[0].name).toBe('es-us-x-esc-local');
+    expect(ranked[0].tierLabel).toBe('Voz local');
+    expect(ranked[1].tierLabel).toBe('Voz en línea');
+    expect(new Set(ranked.map((v) => v.displayName)).size).toBe(2);
   });
 
   it('debe pronunciar reverentemente libros numerados (Primera de Juan, Segunda de Corintios) y raíces hebreas', () => {
@@ -123,20 +152,6 @@ describe('Motor de Voz Offline (TTS) y Limpiador Fonético', () => {
     expect(verseChunk?.rate).toBeLessThan(narrativeChunk?.rate || 1);
     expect(verseChunk?.pitch).toBeLessThan(narrativeChunk?.pitch || 1);
     expect(verseChunk?.pauseAfterMs).toBeGreaterThanOrEqual(400);
-  });
-
-  it('debe listar modelos Piper Neural HD y permitir descarga fraccionada resiliente', async () => {
-    const models = piperNeuralTts.getAvailableModels();
-    expect(models.length).toBeGreaterThan(0);
-    expect(models[0].sizeMb).toBe(35);
-
-    let lastProgress = 0;
-    const success = await piperNeuralTts.downloadAndLoad(models[0].id, (p) => {
-      lastProgress = p;
-    });
-    expect(success).toBe(true);
-    expect(lastProgress).toBe(100);
-    expect(piperNeuralTts.isModelLoaded()).toBe(true);
   });
 });
 

@@ -110,7 +110,7 @@ export const StudyWhiteboard: React.FC<StudyWhiteboardProps> = ({
         ? `🔗 *Referencias Cruzadas (TSK):* ${study.referencias_cruzadas.join(', ')}`
         : '',
       '',
-      `— _Generado por VerboVivo (100% Offline)_`,
+      `— _Generado por VerboVivo_`,
     ]
       .filter(Boolean)
       .join('\n');

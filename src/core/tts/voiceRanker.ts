@@ -8,97 +8,65 @@ export interface RankedVoiceOption extends TtsVoiceOption {
   displayName: string;
 }
 
-export const PREDEFINED_NATURAL_VOICES: RankedVoiceOption[] = [
-  {
-    voiceIndex: -101,
-    name: 'Jorge (Natural HD - México)',
-    displayName: 'Jorge (Natural HD - Pastoral Cálido)',
-    lang: 'es-MX',
-    isDefault: true,
-    isLocalService: false,
-    score: 165,
-    tier: 'TIER_1_NEURAL',
-    tierLabel: 'Neural HD',
-    isNeural: true,
-  },
-  {
-    voiceIndex: -102,
-    name: 'Dalia (Natural HD - México)',
-    displayName: 'Dalia (Natural HD - Devocional)',
-    lang: 'es-MX',
-    isDefault: false,
-    isLocalService: false,
-    score: 162,
-    tier: 'TIER_1_NEURAL',
-    tierLabel: 'Neural HD',
-    isNeural: true,
-  },
-  {
-    voiceIndex: -103,
-    name: 'Álvaro (Natural HD - España)',
-    displayName: 'Álvaro (Natural HD - Exegético)',
-    lang: 'es-ES',
-    isDefault: false,
-    isLocalService: false,
-    score: 158,
-    tier: 'TIER_1_NEURAL',
-    tierLabel: 'Neural HD',
-    isNeural: true,
-  },
-  {
-    voiceIndex: -104,
-    name: 'Elvira (Natural HD - España)',
-    displayName: 'Elvira (Natural HD - Reverente)',
-    lang: 'es-ES',
-    isDefault: false,
-    isLocalService: false,
-    score: 156,
-    tier: 'TIER_1_NEURAL',
-    tierLabel: 'Neural HD',
-    isNeural: true,
-  },
-  {
-    voiceIndex: -105,
-    name: 'Paloma (Natural HD - Latam)',
-    displayName: 'Paloma (Natural HD - Meditación)',
-    lang: 'es-US',
-    isDefault: false,
-    isLocalService: false,
-    score: 154,
-    tier: 'TIER_1_NEURAL',
-    tierLabel: 'Neural HD',
-    isNeural: true,
-  },
-  {
-    voiceIndex: -106,
-    name: 'Gonzalo (Natural HD - Colombia)',
-    displayName: 'Gonzalo (Natural HD - Colombia Cálido)',
-    lang: 'es-CO',
-    isDefault: false,
-    isLocalService: false,
-    score: 152,
-    tier: 'TIER_1_NEURAL',
-    tierLabel: 'Neural HD',
-    isNeural: true,
-  },
-  {
-    voiceIndex: -107,
-    name: 'Salomé (Natural HD - Colombia)',
-    displayName: 'Salomé (Natural HD - Serena)',
-    lang: 'es-CO',
-    isDefault: false,
-    isLocalService: false,
-    score: 150,
-    tier: 'TIER_1_NEURAL',
-    tierLabel: 'Neural HD',
-    isNeural: true,
-  },
-];
+export interface RawDeviceVoice {
+  name?: string;
+  voiceURI?: string;
+  lang?: string;
+  localService?: boolean;
+  default?: boolean;
+}
+
+/**
+ * Convierte las voces que expone el sistema (Android TTS o Web Speech) en
+ * opciones seleccionables reales.
+ *
+ * No se inventan voces: si el dispositivo no tiene una voz, no aparece. Se
+ * descartan los alias genéricos `xx-XX-language`, que apuntan a la misma voz
+ * por defecto y llenaban la lista de opciones repetidas.
+ */
+export function buildDeviceVoiceOptions(rawVoices: RawDeviceVoice[]): TtsVoiceOption[] {
+  const candidates = rawVoices
+    .map((voice, index) => ({ voice, index }))
+    .filter(({ voice }) => {
+      if (!/^es([-_]|$)/i.test(voice.lang || '')) return false;
+      return !(voice.voiceURI || '').toLowerCase().endsWith('-language');
+    });
+
+  // Android suele exponer la misma voz dos veces: `...-local` y `...-network`.
+  // Es el mismo timbre; mostrarlo dos veces hacía parecer que la voz no cambiaba.
+  // Conservamos la variante local y, si solo existe la de red, esa.
+  const byBaseId = new Map<string, { voice: RawDeviceVoice; index: number }>();
+  for (const candidate of candidates) {
+    const rawId = (candidate.voice.voiceURI || candidate.voice.name || '').toLowerCase();
+    const baseId = rawId.replace(/-(local|network)$/i, '');
+    const existing = byBaseId.get(baseId);
+    const isLocal = candidate.voice.localService !== false;
+    if (!existing) {
+      byBaseId.set(baseId, candidate);
+      continue;
+    }
+    const existingIsLocal = existing.voice.localService !== false;
+    if (isLocal && !existingIsLocal) {
+      byBaseId.set(baseId, candidate);
+    }
+  }
+
+  return Array.from(byBaseId.values()).map(({ voice, index }) => {
+    const voiceURI = voice.voiceURI || voice.name || `Voz del sistema ${index + 1}`;
+    return {
+      voiceIndex: index,
+      name: voiceURI,
+      voiceURI,
+      lang: voice.lang || 'es-ES',
+      isDefault: !!voice.default,
+      isLocalService: voice.localService !== false,
+    };
+  });
+}
 
 const TIER1_NEURAL_KEYWORDS = [
   'natural',
   'neural',
-  'online',
   'multilingual',
   'sabina',
   'dalia',
@@ -108,9 +76,6 @@ const TIER1_NEURAL_KEYWORDS = [
   'paulina',
   'mónica (mejorada)',
   'monica (mejorada)',
-  'google español',
-  'google es',
-  'network',
   'wavenet',
   'enhanced',
   'alta calidad',
@@ -130,6 +95,11 @@ const PREFERRED_REGIONS = [
   'es_us',
 ];
 
+function isLocalVoice(voice: { localService?: boolean; isLocalService?: boolean }): boolean {
+  if (typeof voice.isLocalService === 'boolean') return voice.isLocalService;
+  return voice.localService !== false;
+}
+
 /**
  * Calcula la puntuación de calidad humana para una voz según el estándar estricto:
  * 1. Tier 1 (Voces Neurales / Naturales HD): 100+ puntos
@@ -142,6 +112,7 @@ export function scoreVoice(voice: {
   voiceURI?: string;
   lang: string;
   localService?: boolean;
+  isLocalService?: boolean;
 }): number {
   const langLower = (voice.lang || '').toLowerCase();
   const isSpanish = langLower.startsWith('es');
@@ -166,7 +137,7 @@ export function scoreVoice(voice: {
   }
 
   // Bonus de servicio local limpio (sin lag de red)
-  if (voice.localService) {
+  if (isLocalVoice(voice)) {
     score += 15;
   }
 
@@ -188,6 +159,7 @@ export function classifyVoiceTier(voice: {
   voiceURI?: string;
   lang: string;
   localService?: boolean;
+  isLocalService?: boolean;
 }): { tier: VoiceTier; tierLabel: string; isNeural: boolean } {
   const textToCheck = `${voice.name || ''} ${voice.voiceURI || ''}`.toLowerCase();
   const isNeural = TIER1_NEURAL_KEYWORDS.some((kw) => textToCheck.includes(kw));
@@ -202,17 +174,17 @@ export function classifyVoiceTier(voice: {
 
   const langLower = (voice.lang || '').toLowerCase();
   const isPreferredRegion = PREFERRED_REGIONS.some((reg) => langLower.includes(reg));
-  if (isPreferredRegion && voice.localService) {
+  if (isLocalVoice(voice)) {
     return {
       tier: 'TIER_2_REGIONAL',
-      tierLabel: 'Regional Limpia',
+      tierLabel: isPreferredRegion ? 'Voz local' : 'Voz local (otra región)',
       isNeural: false,
     };
   }
 
   return {
     tier: 'TIER_3_STANDARD',
-    tierLabel: 'Estándar',
+    tierLabel: 'Voz en línea',
     isNeural: false,
   };
 }
@@ -236,7 +208,6 @@ export function rankVoices(rawVoices: TtsVoiceOption[]): RankedVoiceOption[] {
       const parts = cleanName.split(/[-_]/);
       const regCode = parts[1]?.toUpperCase() || 'ES';
       const regLabel = regCode === 'US' ? 'Latinoamérica' : regCode === 'ES' ? 'España' : regCode;
-      const isNet = cleanName.toLowerCase().includes('network');
 
       const variantToken = (parts[3] || parts[2] || '').toLowerCase();
       let gender = 'Natural';
@@ -264,7 +235,7 @@ export function rankVoices(rawVoices: TtsVoiceOption[]): RankedVoiceOption[] {
       const variantSuffix = variantToken.replace(/[^a-z0-9]/g, '').slice(-2).toUpperCase();
       const variantTag = variantSuffix ? ` [${variantSuffix}]` : '';
 
-      cleanName = `Español (${regLabel}) - ${gender}${variantTag}${isNet ? ' HD' : ''}`;
+      cleanName = `Español (${regLabel}) - ${gender}${variantTag}`;
     }
 
     return {

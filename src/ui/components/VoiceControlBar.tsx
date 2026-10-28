@@ -8,30 +8,28 @@ import {
   SkipForward,
   SkipBack,
   Sparkles,
-  Cpu,
   ChevronDown,
   X,
   Check,
 } from 'lucide-react';
 import { offlineTts } from '../../core/tts/offlineTtsService.js';
 import { TtsState, RankedVoiceOption } from '../../core/tts/index.js';
-import { piperNeuralTts, PiperModelConfig } from '../../core/tts/piperNeuralTtsAdapter.js';
 
 export const VoiceControlBar: React.FC = () => {
   const [ttsState, setTtsState] = useState<TtsState>(offlineTts.getState());
   const [rankedVoices, setRankedVoices] = useState<RankedVoiceOption[]>([]);
-  const [piperModels, setPiperModels] = useState<PiperModelConfig[]>([]);
   const [isVoiceMenuOpen, setIsVoiceMenuOpen] = useState(false);
-  const [piperDownloadProgress, setPiperDownloadProgress] = useState<number | null>(null);
 
   useEffect(() => {
     const unsubscribe = offlineTts.subscribe((newState) => {
       setTtsState(newState);
+      // Las voces nativas llegan de forma asíncrona; refrescarlas aquí evita
+      // que la lista quede vacía o desactualizada.
+      setRankedVoices(offlineTts.getVoices());
     });
 
     const updateVoices = () => {
       setRankedVoices(offlineTts.getVoices());
-      setPiperModels(piperNeuralTts.getAvailableModels());
     };
 
     updateVoices();
@@ -50,45 +48,15 @@ export const VoiceControlBar: React.FC = () => {
     return null;
   }
 
-  const handleSelectVoice = (voiceName: string) => {
-    offlineTts.setEngineMode('SYSTEM_NEURAL');
-    offlineTts.setVoice(voiceName);
-    setIsVoiceMenuOpen(false);
-  };
-
-  const handleSelectPiperModel = async (model: PiperModelConfig) => {
-    if (!model.isDownloaded) {
-      setPiperDownloadProgress(10);
-      await piperNeuralTts.downloadAndLoad(model.id, (p) => {
-        setPiperDownloadProgress(p);
-      });
-      setPiperDownloadProgress(null);
-      setPiperModels(piperNeuralTts.getAvailableModels());
-    } else {
-      piperNeuralTts.setActiveModelId(model.id);
-    }
-    offlineTts.setEngineMode('PIPER_HD_OFFLINE');
-
-    // Mapear automáticamente a una voz adecuada de la región (Latinoamérica o España)
-    const isLatam = model.id.startsWith('es_MX');
-    const matchingVoice =
-      rankedVoices.find((v) => {
-        const langLower = (v.lang || '').toLowerCase().replace('_', '-');
-        if (isLatam) {
-          return langLower.includes('mx') || langLower.includes('us') || langLower.includes('419');
-        }
-        return langLower.includes('es');
-      }) || rankedVoices[0];
-
-    if (matchingVoice) {
-      offlineTts.setVoice(matchingVoice.name);
-    }
-
+  const handleSelectVoice = (voiceId: string) => {
+    offlineTts.setVoice(voiceId);
     setIsVoiceMenuOpen(false);
   };
 
   const currentVoiceObj = rankedVoices.find(
-    (v) => v.name === ttsState.selectedVoiceName || v.displayName === ttsState.selectedVoiceName
+    (v) =>
+      v.name === ttsState.selectedVoiceName ||
+      v.voiceURI === ttsState.selectedVoiceName
   );
 
   return (
@@ -259,19 +227,10 @@ export const VoiceControlBar: React.FC = () => {
                 onClick={() => setIsVoiceMenuOpen(true)}
                 className="flex items-center gap-1 px-2 py-1 rounded-xl bg-nocturne-950 border border-nocturne-800 text-[11px] text-zinc-300 hover:border-sacred-gold/40 transition-colors shrink-0 max-w-[125px] sm:max-w-[170px]"
               >
-                {ttsState.activeEngineMode === 'PIPER_HD_OFFLINE' ? (
-                  <>
-                    <Cpu className="w-3 h-3 text-sky-400 shrink-0" />
-                    <span className="truncate">Piper Neural</span>
-                  </>
-                ) : (
-                  <>
-                    <Volume2 className="w-3 h-3 text-sacred-gold shrink-0" />
-                    <span className="truncate">
-                      {currentVoiceObj?.displayName || currentVoiceObj?.name || 'Voz Neural'}
-                    </span>
-                  </>
-                )}
+                <Volume2 className="w-3 h-3 text-sacred-gold shrink-0" />
+                <span className="truncate">
+                  {currentVoiceObj?.displayName || currentVoiceObj?.name || 'Voz del sistema'}
+                </span>
                 <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
               </button>
             </div>
@@ -303,7 +262,7 @@ export const VoiceControlBar: React.FC = () => {
                     Seleccionar Voz de Lectura
                   </h3>
                   <p className="text-[11px] text-zinc-400">
-                    Timbres naturales y modelos adaptados a la lectura bíblica
+                    Voces reales instaladas en tu Android
                   </p>
                 </div>
               </div>
@@ -316,20 +275,33 @@ export const VoiceControlBar: React.FC = () => {
             </div>
 
             {/* Lista scrolleable de opciones */}
-            <div className="overflow-y-auto flex-1 py-3 space-y-4 pr-1">
-              {/* Sección 1: Voces del Sistema / Android */}
+            <div className="overflow-y-auto flex-1 py-3 pr-1">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-sacred-gold font-semibold flex items-center gap-1.5 px-1 mb-2">
-                  <Sparkles className="w-3 h-3 text-sacred-gold" />
-                  Voces Naturales del Dispositivo ({rankedVoices.length})
-                </span>
+                <div className="flex items-center justify-between gap-2 px-1 mb-2">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-sacred-gold font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-sacred-gold" />
+                    Voces instaladas en el dispositivo ({rankedVoices.length})
+                  </span>
+                  {rankedVoices.length > 0 && (
+                    <button
+                      onClick={() =>
+                        offlineTts.speak(
+                          'El Señor es mi pastor; nada me faltará. Salmo veintitrés, versículo uno.'
+                        )
+                      }
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-sacred-gold/15 border border-sacred-gold/40 text-[10px] font-semibold text-sacred-gold hover:bg-sacred-gold/25 transition-colors shrink-0"
+                    >
+                      <Play className="w-3 h-3 fill-current" />
+                      Probar
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-1.5">
                   {rankedVoices.length > 0 ? (
                     rankedVoices.map((v) => {
                       const isSelected =
-                        ttsState.activeEngineMode === 'SYSTEM_NEURAL' &&
-                        (ttsState.selectedVoiceName === v.name ||
-                          ttsState.selectedVoiceName === v.displayName);
+                        ttsState.selectedVoiceName === v.name ||
+                        ttsState.selectedVoiceName === v.voiceURI;
                       return (
                         <button
                           key={v.name}
@@ -352,7 +324,9 @@ export const VoiceControlBar: React.FC = () => {
                             <div className="text-[10px] text-zinc-400 mt-0.5 flex items-center gap-2">
                               <span className="font-mono">{v.lang}</span>
                               <span>•</span>
-                              <span>{v.tierLabel || 'Estándar'}</span>
+                              <span>
+                                {v.isLocalService ? 'Local, sin internet' : 'Requiere internet'}
+                              </span>
                             </div>
                           </div>
                           <Check
@@ -364,61 +338,16 @@ export const VoiceControlBar: React.FC = () => {
                       );
                     })
                   ) : (
-                    <div className="p-3 rounded-xl bg-nocturne-950 text-center text-xs text-zinc-400">
-                      Voz estándar del sistema configurada automáticamente.
+                    <div className="p-3 rounded-xl bg-nocturne-950 text-center text-xs text-zinc-400 leading-relaxed">
+                      El sistema todavía no reporta voces en español. Instala una desde
+                      Ajustes de Android → Sistema → Idiomas → Salida de texto a voz.
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Sección 2: Modelos Neurales Offline Piper */}
-              <div className="pt-2 border-t border-nocturne-800">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-sky-400 font-semibold flex items-center gap-1.5 px-1 mb-2">
-                  <Cpu className="w-3 h-3 text-sky-400" />
-                  Estudio Neural Offline Piper (~35 MB)
-                </span>
-                <div className="space-y-1.5">
-                  {piperModels.map((pm) => {
-                    const isSelected =
-                      ttsState.activeEngineMode === 'PIPER_HD_OFFLINE' &&
-                      piperNeuralTts.getActiveModelId() === pm.id;
-                    return (
-                      <button
-                        key={pm.id}
-                        onClick={() => handleSelectPiperModel(pm)}
-                        disabled={piperDownloadProgress !== null}
-                        className={`w-full text-left p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
-                          isSelected
-                            ? 'bg-sky-500/15 border-sky-400/60 text-sky-300 shadow-md'
-                            : 'bg-nocturne-950/70 border-nocturne-800/80 text-zinc-200 hover:bg-nocturne-800/60'
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium text-xs truncate flex items-center gap-2">
-                            <span>{pm.name}</span>
-                            {isSelected && (
-                              <span className="px-1.5 py-0.5 rounded text-[9px] bg-sky-400 text-nocturne-950 font-bold uppercase">
-                                Activo
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed">
-                            {pm.description}
-                          </p>
-                        </div>
-                        <span className="text-[10px] px-2.5 py-1 rounded-lg font-mono shrink-0 bg-sky-950 text-sky-300 border border-sky-800/40">
-                          {pm.isDownloaded ? 'Listo' : 'Descargar'}
-                        </span>
-                      </button>
-                    );
-                  })}
-
-                  {piperDownloadProgress !== null && (
-                    <div className="p-3 text-xs text-sky-300 bg-sky-950/60 rounded-xl border border-sky-800/40 text-center font-mono animate-pulse">
-                      Descargando e inicializando modelo neural... {piperDownloadProgress}%
-                    </div>
-                  )}
-                </div>
+                <p className="text-[10px] text-zinc-500 px-1 mt-3 leading-relaxed">
+                  Esta lista muestra solo las voces reales del dispositivo. Si suenan pocas,
+                  instala más voces de Google en los ajustes de texto a voz de Android.
+                </p>
               </div>
             </div>
           </div>

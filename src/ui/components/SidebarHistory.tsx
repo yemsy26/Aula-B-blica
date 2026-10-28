@@ -94,7 +94,7 @@ export const SidebarHistory: React.FC<SidebarHistoryProps> = ({
                   VerboVivo
                 </h1>
                 <p className="text-[10px] text-zinc-400 font-mono tracking-tight mt-0.5">
-                  100% Offline · RV1909
+                  Offline-first · RV1909
                 </p>
               </div>
             </div>
