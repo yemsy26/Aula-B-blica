@@ -326,10 +326,10 @@ export class OfflineTtsService implements TtsController {
     index: number,
     targetLang: string
   ): void {
-    // 1. Android/iOS nativo: motor TTS del sistema con la voz elegida por URI.
+    // 1. Android/iOS nativo: motor TTS del sistema. El plugin direcciona las
+    // voces por índice; la URI solo sirve para identificarlas en la lista.
     if (Capacitor.isNativePlatform()) {
       const selectedVoice = this.findSelectedVoice();
-      const targetVoiceURI = selectedVoice?.voiceURI || selectedVoice?.name;
       const targetVoiceIndex = selectedVoice?.voiceIndex ?? -1;
       if (selectedVoice?.lang) targetLang = selectedVoice.lang;
 
@@ -343,10 +343,7 @@ export class OfflineTtsService implements TtsController {
         rate,
         pitch,
         volume: 1.0,
-        // `voiceURI` es el identificador exacto del motor; el índice solo se
-        // usa como respaldo cuando la URI no está disponible.
         voice: targetVoiceIndex >= 0 ? targetVoiceIndex : undefined,
-        voiceURI: targetVoiceURI,
         category: 'playback',
       });
 
