@@ -6,9 +6,10 @@
 
 ## 1. Principios de Arquitectura y Compromisos
 
-1. **Privacidad y Soberanía Local (100% Offline):**
+1. **Privacidad y soberanía local (offline-first):**
    - Todo dato del usuario (consultas, historial, estudios, notas de voz, perfiles de memoria) debe permanecer exclusivamente en el dispositivo del usuario.
    - Queda estrictamente prohibido introducir llamadas o telemetrías a servicios de terceros, APIs en la nube o analíticas comerciales sin consentimiento explícito y local.
+   - La conexión a un servidor de modelos local (Ollama, LM Studio u otro compatible con OpenAI) es una acción explícita del usuario. El motor determinista debe seguir funcionando sin red.
 
 2. **Inmutabilidad Canónica (0% Alteración de Texto Bíblico):**
    - Ningún modelo generativo o función de transformación puede modificar, parafrasear o alucinar versículos bíblicos canónicos.
@@ -23,9 +24,10 @@
 ## 2. Configuración del Entorno de Desarrollo
 
 ### Requisitos Previos
-- **Node.js:** Versión 18.0.0 o superior (`node -v`).
-- **npm:** Versión 9.0.0 o superior (`npm -v`).
+- **Node.js:** Versión 20.19 o superior (recomendado 22 LTS o 24).
+- **npm:** Versión 10 o superior (`npm -v`).
 - **Git:** Instalado en el sistema operativo.
+- **Android (opcional):** JDK 17, Android SDK 36 y NDK 27.0.12077973 para compilar el APK nativo.
 
 ### Pasos de Instalación
 
@@ -43,6 +45,17 @@ npm run dev
 # 4. Ejecutar la suite completa de pruebas unitarias
 npm test
 ```
+
+### Compilación del APK Android
+
+```bash
+npm run build
+npx cap copy android
+cd android
+./gradlew assembleDebug
+```
+
+El APK se genera en `android/app/build/outputs/apk/debug/app-debug.apk`. Para firmar un release, copia `android/keystore.properties.example` a `android/keystore.properties` y coloca tu keystore fuera del control de versiones; sin ese archivo se usa la firma de depuración estándar.
 
 ---
 
