@@ -1,7 +1,8 @@
 import { InferenceEngine, ModelProfileId } from './types.js';
 import { TheologicalRoute, UserTheologicalLevel, MinistryFormat } from '../shield/types.js';
 import { getPersonalityConfig } from './systemPrompts.js';
-import { realModelBridge } from './realModelBridge.js';
+import { brainRegistry } from './brain/brainRegistry.js';
+import { BrainChatMessage } from './brain/types.js';
 import { findCanonicalBook } from '../database/canonicalBooks.js';
 import { findBiblicalMirror } from '../rag/casuistryMapper.js';
 import { UserEvolutionProfile, ChatMessage } from '../database/usuarioMemoriaService.js';
@@ -500,7 +501,8 @@ export class LocalDeterministicEngine implements InferenceEngine {
     onToken?: (token: string) => void,
     userProfile?: UserEvolutionProfile | null,
     format?: MinistryFormat,
-    chatHistory?: ChatMessage[]
+    chatHistory?: ChatMessage[],
+    signal?: AbortSignal
   ): Promise<string> {
     this.busy = true;
 
@@ -510,20 +512,59 @@ export class LocalDeterministicEngine implements InferenceEngine {
       // 1. Configuración camaleónica (< 1ms)
       const personality = getPersonalityConfig(route, level, activeFormat);
 
-      // 2. Si el desarrollador activó el puente hacia servidor local (Ollama / LM Studio en PC)
-      if (realModelBridge.getBackendType() === 'LOCAL_SERVER') {
+      // 2. Si hay un cerebro real configurado (Ollama / OpenAI-compatible), usarlo con historial completo.
+      const brainConfig = brainRegistry.getConfig();
+      if (brainConfig.provider !== 'deterministic') {
         try {
-          const serverOutput = await realModelBridge.generateStream(
-            prompt,
-            personality,
-            groundTruthContext,
-            onToken
+          const messages: BrainChatMessage[] = [
+            {
+              role: 'system',
+              content: [personality.systemPrompt, groundTruthContext || '']
+                .filter(Boolean)
+                .join('\n\n'),
+            },
+          ];
+
+          const previousTurns = (chatHistory ?? []).slice(-12);
+          for (const turn of previousTurns) {
+            if (turn.role === 'system') continue;
+            messages.push({ role: turn.role, content: turn.content });
+          }
+
+          const lastMessage = messages[messages.length - 1];
+          if (!lastMessage || lastMessage.role !== 'user' || lastMessage.content !== prompt) {
+            messages.push({ role: 'user', content: prompt });
+          }
+
+          const serverResult = await brainRegistry.chat(
+            {
+              messages,
+              temperature: personality.temperature,
+              maxTokens: personality.maxOutputTokens,
+              topP: personality.topP,
+              stop: personality.stopSequences,
+              stream: true,
+              deterministic: {
+                route,
+                level,
+                groundTruthContext,
+                userProfile,
+                format,
+                chatHistory,
+              },
+            },
+            onToken,
+            signal
           );
-          if (serverOutput && serverOutput.trim().length > 0) {
-            return serverOutput;
+
+          if (serverResult.text && serverResult.text.trim().length > 0) {
+            return serverResult.text;
           }
         } catch (serverErr) {
-          console.warn('Servidor local no disponible, ejecutando motor determinista edge:', serverErr);
+          if (signal?.aborted) {
+            throw serverErr;
+          }
+          console.warn('Cerebro local no disponible, ejecutando motor determinista edge:', serverErr);
         }
       }
 
@@ -554,6 +595,10 @@ export class LocalDeterministicEngine implements InferenceEngine {
       let fullOutput = '';
 
       for (let i = 0; i < tokens.length; i++) {
+        if (signal?.aborted) {
+          throw new DOMException('Generación cancelada', 'AbortError');
+        }
+
         const token = tokens[i];
         fullOutput += token;
         if (onToken) {
@@ -581,3 +626,31 @@ export class LocalDeterministicEngine implements InferenceEngine {
 }
 
 export const localInferenceEngine = new LocalDeterministicEngine();
+
+/**
+ * Conecta el compositor determinista al registro de cerebros.
+ * Así el adaptador "deterministic" puede responder sin depender de un modelo externo.
+ */
+brainRegistry.setDeterministicComposer((request) => {
+  const context = request.deterministic;
+  const lastUser = [...request.messages].reverse().find((message) => message.role === 'user');
+  const prompt = lastUser?.content ?? '';
+
+  if (!context) {
+    return (
+      'Estoy funcionando con el motor determinista de VerboVivo. ' +
+      'Para una respuesta generativa necesito que configures un modelo local (Ollama o OpenAI-compatible).'
+    );
+  }
+
+  return DynamicTheologicalComposer.compose(
+    prompt,
+    context.route,
+    context.level,
+    context.availableCitations ?? [],
+    context.groundTruthContext,
+    context.userProfile,
+    context.format,
+    context.chatHistory
+  );
+});

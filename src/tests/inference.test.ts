@@ -1,12 +1,16 @@
-import { describe, it, expect } from 'vitest';
-import { selectAdaptiveModel, AVAILABLE_MODELS } from '../core/inference/modelRegistry.js';
+import { describe, it, expect, vi } from 'vitest';
+import {
+  selectAdaptiveModel,
+  buildDeviceCatalog,
+  AVAILABLE_MODELS,
+} from '../core/inference/modelRegistry.js';
 import { getPersonalityConfig } from '../core/inference/systemPrompts.js';
 import { ChunkedDownloader } from '../core/inference/chunkedDownloader.js';
 import { LocalDeterministicEngine } from '../core/inference/localEngine.js';
 import { extractBiblicalReference } from '../core/inference/passageExegesisService.js';
 
 describe('Inferencia Edge - Selector Adaptativo de Hardware', () => {
-  it('debe asignar perfil ULTRALIGHT (0.8B) en dispositivos con RAM <= 3GB', () => {
+  it('debe asignar perfil ULTRALIGHT (0.5B) en dispositivos con RAM <= 3GB', () => {
     const model = selectAdaptiveModel({
       platform: 'android',
       estimatedRamMb: 2048,
@@ -14,38 +18,48 @@ describe('Inferencia Edge - Selector Adaptativo de Hardware', () => {
     });
 
     expect(model.id).toBe('ULTRALIGHT');
-    expect(model.cuantizacion).toBe('Q3_K_M');
-    expect(model.tamanoMb).toBeLessThanOrEqual(450);
+    expect(model.cuantizacion).toBe('Q4_K_M');
+    expect(model.tamanoMb).toBeLessThanOrEqual(480);
   });
 
-  it('debe asignar perfil STANDARD (1.5B) en dispositivos con RAM de 4GB', () => {
-    const model = selectAdaptiveModel({
-      platform: 'android',
+  it('debe mantener ULTRALIGHT (0.5B) en Android de 4GB porque el WebView usa un solo hilo', () => {
+    const info = {
+      platform: 'android' as const,
       estimatedRamMb: 4096,
       isLowEndDevice: false,
-    });
+    };
+    const model = selectAdaptiveModel(info);
 
-    expect(model.id).toBe('STANDARD');
+    expect(model.id).toBe('ULTRALIGHT');
     expect(model.cuantizacion).toBe('Q4_K_M');
-    expect(model.contextoMaxTokens).toBe(2048);
+
+    const catalog = buildDeviceCatalog(info);
+    expect(catalog.usableEntries.map((entry) => entry.id)).toEqual(['ULTRALIGHT']);
+    expect(catalog.hiddenEntries.map((entry) => entry.id)).toEqual([
+      'STANDARD',
+      'ADVANCED_4B',
+      'MAX_8B',
+    ]);
+    expect(catalog.hiddenSummary).toContain('un solo hilo');
   });
 
-  it('debe asignar perfil ADVANCED_4B (4B) en móviles de 6GB y MAX_8B (8B) en 8GB+ Flagship', () => {
-    const model4b = selectAdaptiveModel({
-      platform: 'android',
-      estimatedRamMb: 6144,
-      isLowEndDevice: false,
-    });
-    expect(model4b.id).toBe('ADVANCED_4B');
-    expect(model4b.tamanoParametros).toBe('4B');
+  it('no debe recomendar 3B ni 7B en Android aunque el teléfono tenga 6-8GB', () => {
+    for (const estimatedRamMb of [6144, 8192]) {
+      const info = {
+        platform: 'android' as const,
+        estimatedRamMb,
+        isLowEndDevice: false,
+      };
+      const model = selectAdaptiveModel(info);
+      expect(model.id).toBe('ULTRALIGHT');
 
-    const model8b = selectAdaptiveModel({
-      platform: 'android',
-      estimatedRamMb: 8192,
-      isLowEndDevice: false,
-    });
-    expect(model8b.id).toBe('MAX_8B');
-    expect(model8b.tamanoParametros).toBe('8B');
+      const catalog = buildDeviceCatalog(info);
+      const advanced = catalog.entries.find((entry) => entry.id === 'ADVANCED_4B');
+      const maximum = catalog.entries.find((entry) => entry.id === 'MAX_8B');
+      expect(advanced?.usable).toBe(false);
+      expect(maximum?.usable).toBe(false);
+      expect(advanced?.blocker).toContain('un solo hilo');
+    }
   });
 });
 
@@ -75,13 +89,41 @@ describe('Inferencia Edge - Camaleón de Personalidad y Prompts', () => {
 });
 
 describe('Inferencia Edge - Descargador Fraccionado por Bloques', () => {
-  it('debe simular descarga fraccionada por bloques de 50MB con pausa y reanudación', async () => {
+  it('debe descargar por rangos con pausa y reanudación sin inventar bloques', async () => {
     let lastProgressPercentage = 0;
-    const manifest = AVAILABLE_MODELS.ULTRALIGHT;
+    // Manifiesto reducido: el descargador exige que cada bloque pese
+    // exactamente lo solicitado y que el ensamblado mida lo declarado.
+    const manifest = {
+      ...AVAILABLE_MODELS.ULTRALIGHT,
+      tamanoMb: 4 / 1024,
+      totalChunks: 4,
+      tamanoChunkMb: 1 / 1024,
+      sha256: '',
+      archivoDestino: 'inference_pause_resume.gguf',
+    };
 
-    const downloader = new ChunkedDownloader(manifest, (p) => {
-      lastProgressPercentage = p.porcentaje;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const range = new Headers(init?.headers).get('Range') || '';
+      const match = /bytes=(\d+)-(\d+)/.exec(range);
+      const start = match ? Number(match[1]) : 0;
+      const end = match ? Number(match[2]) : 1023;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const buffer = new ArrayBuffer(Math.max(0, end - start + 1));
+      new Uint8Array(buffer).fill(start % 255);
+      return {
+        ok: true,
+        status: 206,
+        arrayBuffer: async () => buffer,
+      } as unknown as Response;
     });
+
+    const downloader = new ChunkedDownloader(
+      manifest,
+      (p) => {
+        lastProgressPercentage = p.porcentaje;
+      },
+      { fetchImpl: fetchMock as unknown as typeof fetch }
+    );
 
     expect(downloader.getStatus()).toBe('IDLE');
 

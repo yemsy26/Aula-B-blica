@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { selectAdaptiveModel, assessDeviceCapabilities, AVAILABLE_MODELS } from '../core/inference/modelRegistry.js';
 import { ChunkedDownloader } from '../core/inference/chunkedDownloader.js';
 import { LocalDeterministicEngine } from '../core/inference/localEngine.js';
@@ -11,15 +11,15 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
   // =========================================================================
   // 1. OPCIONES DE CEREBRO DISPONIBLES Y SELECTOR ADAPTATIVO DE HARDWARE
   // =========================================================================
-  describe('1. Modelos Disponibles y Selector Adaptativo de Hardware (0.8B, 1.5B, 4B, 8B)', () => {
-    it('debe registrar el cerebro ULTRALIGHT (0.8B Q3_K_M) con métricas óptimas para gama baja', () => {
+  describe('1. Modelos Disponibles y Selector Adaptativo de Hardware (0.5B, 1.5B, 3B, 7B)', () => {
+    it('debe registrar el cerebro ULTRALIGHT (0.5B Q4_K_M) con métricas óptimas para gama baja', () => {
       const model = AVAILABLE_MODELS.ULTRALIGHT;
       expect(model.id).toBe('ULTRALIGHT');
-      expect(model.tamanoParametros).toBe('0.8B');
-      expect(model.cuantizacion).toBe('Q3_K_M');
-      expect(model.tamanoMb).toBeLessThanOrEqual(450);
+      expect(model.tamanoParametros).toBe('0.5B');
+      expect(model.cuantizacion).toBe('Q4_K_M');
+      expect(model.tamanoMb).toBeLessThanOrEqual(480);
       expect(model.ramMinimaRequeridaMb).toBeLessThanOrEqual(2048);
-      expect(model.totalChunks).toBe(8);
+      expect(model.totalChunks).toBe(10);
       expect(model.tamanoChunkMb).toBe(50);
       expect(model.sha256).toBeDefined();
     });
@@ -31,36 +31,38 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
       expect(model.cuantizacion).toBe('Q4_K_M');
       expect(model.contextoMaxTokens).toBeGreaterThanOrEqual(2048);
       expect(model.ramMinimaRequeridaMb).toBe(4096);
-      expect(model.totalChunks).toBe(15);
+      expect(model.totalChunks).toBe(22);
       expect(model.sha256).toBeDefined();
     });
 
-    it('debe registrar el cerebro ADVANCED_4B (4B Q4_K_M) para gama media-alta con análisis lingüístico profundo', () => {
+    it('debe registrar el cerebro ADVANCED_4B (3B real Q4_K_M) para gama media-alta con análisis lingüístico profundo', () => {
       const model = AVAILABLE_MODELS.ADVANCED_4B;
       expect(model.id).toBe('ADVANCED_4B');
-      expect(model.tamanoParametros).toBe('4B');
+      expect(model.tamanoParametros).toBe('3B');
       expect(model.cuantizacion).toBe('Q4_K_M');
-      expect(model.tamanoMb).toBe(2100);
+      expect(model.tamanoMb).toBe(2008);
       expect(model.contextoMaxTokens).toBe(4096);
       expect(model.ramMinimaRequeridaMb).toBe(6144);
-      expect(model.totalChunks).toBe(42);
+      expect(model.totalChunks).toBe(41);
       expect(model.sha256).toBeDefined();
     });
 
-    it('debe registrar el cerebro MAX_8B (8B Q4_K_M) como el modelo soberano máximo para gama alta / Flagship', () => {
+    it('debe registrar el cerebro MAX_8B (7B real Q4_K_M) como el archivo máximo para gama alta / Flagship', () => {
       const model = AVAILABLE_MODELS.MAX_8B;
       expect(model.id).toBe('MAX_8B');
-      expect(model.tamanoParametros).toBe('8B');
+      expect(model.tamanoParametros).toBe('7B');
       expect(model.cuantizacion).toBe('Q4_K_M');
-      expect(model.tamanoMb).toBe(4200);
+      expect(model.tamanoMb).toBe(4467);
       expect(model.contextoMaxTokens).toBe(8192);
       expect(model.ramMinimaRequeridaMb).toBe(8192);
-      expect(model.totalChunks).toBe(84);
+      expect(model.totalChunks).toBe(90);
       expect(model.esMaximoNivel).toBe(true);
       expect(model.sha256).toBeDefined();
     });
 
-    it('debe evaluar capacidades y asignar el modelo óptimo según la RAM del dispositivo (2GB, 4GB, 6GB, 8GB+)', () => {
+    it('debe evaluar capacidades y no ofrecer modelos inviables en Android (2GB, 4GB, 6GB, 8GB+)', () => {
+      // En Android el WebView ejecuta llama.cpp en un solo hilo: la RAM no
+      // basta para ofrecer 1.5B, 3B o 7B como si fueran usables.
       // 1. Móvil de 2GB RAM
       const entryDevice = assessDeviceCapabilities({ platform: 'android', estimatedRamMb: 2048, isLowEndDevice: true });
       expect(entryDevice.recommendedModel.id).toBe('ULTRALIGHT');
@@ -71,28 +73,30 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
 
       // 2. Móvil de 4GB RAM
       const midDevice = assessDeviceCapabilities({ platform: 'android', estimatedRamMb: 4096, isLowEndDevice: false });
-      expect(midDevice.recommendedModel.id).toBe('STANDARD');
+      expect(midDevice.recommendedModel.id).toBe('ULTRALIGHT');
       expect(midDevice.canRun8B).toBe(false);
       expect(midDevice.canRun4B).toBe(false);
-      expect(midDevice.canRunStandard).toBe(true);
+      expect(midDevice.canRunStandard).toBe(false);
       expect(midDevice.tierName).toBe('Gama Media');
 
       // 3. Móvil de 6GB RAM
       const upperMidDevice = assessDeviceCapabilities({ platform: 'android', estimatedRamMb: 6144, isLowEndDevice: false });
-      expect(upperMidDevice.recommendedModel.id).toBe('ADVANCED_4B');
+      expect(upperMidDevice.recommendedModel.id).toBe('ULTRALIGHT');
       expect(upperMidDevice.canRun8B).toBe(false);
-      expect(upperMidDevice.canRun4B).toBe(true);
+      expect(upperMidDevice.canRun4B).toBe(false);
+      expect(upperMidDevice.canRunStandard).toBe(false);
       expect(upperMidDevice.tierName).toBe('Gama Media-Alta');
 
       // 4. Móvil de 8GB - 12GB RAM (Flagship)
       const flagshipDevice = assessDeviceCapabilities({ platform: 'android', estimatedRamMb: 8192, isLowEndDevice: false });
-      expect(flagshipDevice.recommendedModel.id).toBe('MAX_8B');
-      expect(flagshipDevice.canRun8B).toBe(true);
-      expect(flagshipDevice.canRun4B).toBe(true);
+      expect(flagshipDevice.recommendedModel.id).toBe('ULTRALIGHT');
+      expect(flagshipDevice.canRun8B).toBe(false);
+      expect(flagshipDevice.canRun4B).toBe(false);
+      expect(flagshipDevice.canRunStandard).toBe(false);
       expect(flagshipDevice.tierName).toBe('Gama Alta / Flagship');
 
       // selectAdaptiveModel helper
-      expect(selectAdaptiveModel({ platform: 'android', estimatedRamMb: 8192, isLowEndDevice: false }).id).toBe('MAX_8B');
+      expect(selectAdaptiveModel({ platform: 'android', estimatedRamMb: 8192, isLowEndDevice: false }).id).toBe('ULTRALIGHT');
     });
 
     it('debe permitir cambiar de modelo activo en el motor de inferencia entre todos los perfiles', () => {
@@ -117,13 +121,41 @@ describe('Batería Integral de Pruebas del Cerebro y Modelos Edge (VerboVivo)', 
   // 2. DESCARGA FRACCIONADA DE CEREBROS POR BLOQUES (50 MB)
   // =========================================================================
   describe('2. Descarga Fraccionada y Verificación de Integridad de Cerebros', () => {
-    it('debe completar la descarga por bloques con progreso, pausa, reanudación y verificación SHA256', async () => {
+    it('debe completar la descarga por bloques con progreso, pausa y reanudación', async () => {
       const progressLogs: number[] = [];
-      const manifest = AVAILABLE_MODELS.ULTRALIGHT;
+      // Manifiesto reducido: cada bloque debe pesar lo solicitado y el
+      // ensamblado debe coincidir con el total declarado.
+      const manifest = {
+        ...AVAILABLE_MODELS.ULTRALIGHT,
+        tamanoMb: 4 / 1024,
+        totalChunks: 4,
+        tamanoChunkMb: 1 / 1024,
+        sha256: '',
+        archivoDestino: 'cerebro_pause_resume.gguf',
+      };
 
-      const downloader = new ChunkedDownloader(manifest, (p) => {
-        progressLogs.push(p.porcentaje);
+      const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        const range = new Headers(init?.headers).get('Range') || '';
+        const match = /bytes=(\d+)-(\d+)/.exec(range);
+        const start = match ? Number(match[1]) : 0;
+        const end = match ? Number(match[2]) : 1023;
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        const buffer = new ArrayBuffer(Math.max(0, end - start + 1));
+        new Uint8Array(buffer).fill(start % 255);
+        return {
+          ok: true,
+          status: 206,
+          arrayBuffer: async () => buffer,
+        } as unknown as Response;
       });
+
+      const downloader = new ChunkedDownloader(
+        manifest,
+        (p) => {
+          progressLogs.push(p.porcentaje);
+        },
+        { fetchImpl: fetchMock as unknown as typeof fetch }
+      );
 
       expect(downloader.getStatus()).toBe('IDLE');
 

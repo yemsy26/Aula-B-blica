@@ -1,20 +1,39 @@
 import { PersonalityConfig } from './types.js';
+import { brainRegistry } from './brain/brainRegistry.js';
+import { BrainChatMessage } from './brain/types.js';
 
-export type RealBackendType = 'DETERMINISTIC' | 'LOCAL_SERVER' | 'WEBGPU' | 'NATIVE_LLAMA_CPP';
+export type RealBackendType =
+  | 'DETERMINISTIC'
+  | 'LOCAL_SERVER'
+  | 'ON_DEVICE'
+  | 'WEBGPU'
+  | 'NATIVE_LLAMA_CPP';
 
 export interface LocalServerConfig {
-  endpoint: string; // ej: http://localhost:11434 (Ollama) o http://localhost:1234 (LM Studio)
-  modelName: string; // ej: tinyllama, phi3, qwen, llama3
+  endpoint: string;
+  modelName: string;
   timeoutMs: number;
 }
 
+/**
+ * Fachada de compatibilidad sobre BrainRegistry.
+ *
+ * Se conserva para no romper componentes existentes, pero toda la lógica
+ * de red, streaming y salud vive en src/core/inference/brain/.
+ */
 export class RealModelBridge {
-  private backendType: RealBackendType = 'DETERMINISTIC';
-  private serverConfig: LocalServerConfig = {
-    endpoint: 'http://localhost:11434',
-    modelName: 'tinyllama',
-    timeoutMs: 4000,
-  };
+  private backendType: RealBackendType;
+  private lastError: string | null = null;
+
+  constructor() {
+    const provider = brainRegistry.getConfig().provider;
+    this.backendType =
+      provider === 'deterministic'
+        ? 'DETERMINISTIC'
+        : provider === 'on-device'
+          ? 'ON_DEVICE'
+          : 'LOCAL_SERVER';
+  }
 
   getBackendType(): RealBackendType {
     return this.backendType;
@@ -22,169 +41,108 @@ export class RealModelBridge {
 
   setBackendType(type: RealBackendType): void {
     this.backendType = type;
+
+    if (type === 'DETERMINISTIC') {
+      brainRegistry.configure({ provider: 'deterministic', endpoint: '' });
+      return;
+    }
+
+    if (type === 'ON_DEVICE' || type === 'NATIVE_LLAMA_CPP') {
+      const current = brainRegistry.getConfig();
+      const installedModel =
+        current.provider === 'on-device' ? current.model : current.model || 'ULTRALIGHT';
+      brainRegistry.configure({
+        provider: 'on-device',
+        endpoint: '',
+        model: /^[A-Z_0-9]+$/.test(installedModel) ? installedModel : 'ULTRALIGHT',
+      });
+      return;
+    }
+
+    if (type === 'LOCAL_SERVER') {
+      const current = brainRegistry.getConfig();
+      if (current.provider !== 'deterministic' && current.provider !== 'on-device') return;
+
+      const endpoint = current.endpoint || 'http://localhost:11434';
+      const provider = endpoint.includes('11434') ? 'ollama' : 'openai-compatible';
+      brainRegistry.configure({ provider, endpoint });
+      return;
+    }
+
+    // WebGPU todavía no tiene adaptador real. No fingimos que esté activo.
+    this.lastError =
+      'WebGPU aún no está implementado; usa el cerebro en el dispositivo (GGUF/WASM) o un servidor local.';
+    brainRegistry.configure({ provider: 'deterministic', endpoint: '' });
   }
 
   getServerConfig(): LocalServerConfig {
-    return { ...this.serverConfig };
+    const config = brainRegistry.getConfig();
+    return {
+      endpoint: config.endpoint,
+      modelName: config.model,
+      timeoutMs: config.timeoutMs,
+    };
   }
 
   setServerConfig(config: Partial<LocalServerConfig>): void {
-    this.serverConfig = { ...this.serverConfig, ...config };
-  }
+    const patch: { endpoint?: string; model?: string; timeoutMs?: number } = {};
+    if (config.endpoint !== undefined) patch.endpoint = config.endpoint;
+    if (config.modelName !== undefined) patch.model = config.modelName;
+    if (config.timeoutMs !== undefined) patch.timeoutMs = config.timeoutMs;
 
-  /**
-   * Comprueba si el servidor local de calibrado (Ollama / LM Studio) está respondiendo en localhost
-   */
-  async pingLocalServer(): Promise<boolean> {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-      // Probar endpoint base de Ollama o OpenAI compatible
-      const res = await fetch(`${this.serverConfig.endpoint}/api/tags`, {
-        method: 'GET',
-        signal: controller.signal,
-      }).catch(() => null);
-
-      clearTimeout(timeoutId);
-      return Boolean(res && res.ok);
-    } catch {
-      return false;
+    const current = brainRegistry.getConfig();
+    if (config.endpoint !== undefined && current.provider === 'deterministic') {
+      patch.endpoint = config.endpoint;
     }
+
+    brainRegistry.configure(patch);
   }
 
-  /**
-   * Ejecuta inferencia real vía streaming hacia el servidor local (Ollama / LM Studio / llama-server)
-   */
+  getLastError(): string | null {
+    return this.lastError;
+  }
+
+  async pingLocalServer(): Promise<boolean> {
+    const health = await brainRegistry.health();
+    this.lastError = health.ok ? null : health.detail ?? 'Servidor local no disponible.';
+    return health.ok;
+  }
+
   async generateStream(
     prompt: string,
     personality: PersonalityConfig,
     groundTruthContext?: string,
-    onToken?: (token: string) => void
+    onToken?: (token: string) => void,
+    signal?: AbortSignal
   ): Promise<string> {
-    const fullSystemPrompt = [
-      personality.systemPrompt,
-      groundTruthContext || '',
-    ]
-      .filter(Boolean)
-      .join('\n\n');
-
-    // 1. Probar llamada con endpoint de Ollama (/api/generate)
-    const isOllama = this.serverConfig.endpoint.includes('11434');
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.serverConfig.timeoutMs);
-
-    try {
-      if (isOllama) {
-        const response = await fetch(`${this.serverConfig.endpoint}/api/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: this.serverConfig.modelName,
-            prompt,
-            system: fullSystemPrompt,
-            stream: true,
-            options: {
-              temperature: personality.temperature,
-              top_p: personality.topP,
-              num_predict: personality.maxOutputTokens,
-              stop: personality.stopSequences,
-            },
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok || !response.body) {
-          throw new Error(`Error en servidor local: ${response.status}`);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let fullText = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunkStr = decoder.decode(value, { stream: true });
-          const lines = chunkStr.split('\n').filter((l) => l.trim() !== '');
-
-          for (const line of lines) {
-            try {
-              const parsed = JSON.parse(line);
-              if (parsed.response) {
-                fullText += parsed.response;
-                if (onToken) onToken(parsed.response);
-              }
-            } catch {
-              // Fragmento JSON parcial
-            }
-          }
-        }
-
-        return fullText;
-      } else {
-        // Formato estándar OpenAI (LM Studio / vLLM / llama-server en /v1/chat/completions)
-        const response = await fetch(`${this.serverConfig.endpoint}/v1/chat/completions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: this.serverConfig.modelName,
-            messages: [
-              { role: 'system', content: fullSystemPrompt },
-              { role: 'user', content: prompt },
-            ],
-            stream: true,
-            temperature: personality.temperature,
-            max_tokens: personality.maxOutputTokens,
-          }),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok || !response.body) {
-          throw new Error(`Error en endpoint local OpenAI: ${response.status}`);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let fullText = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunkStr = decoder.decode(value, { stream: true });
-          const lines = chunkStr.split('\n').filter((l) => l.trim() !== '');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const dataContent = line.slice(6).trim();
-              if (dataContent === '[DONE]') break;
-              try {
-                const parsed = JSON.parse(dataContent);
-                const delta = parsed.choices?.[0]?.delta?.content;
-                if (delta) {
-                  fullText += delta;
-                  if (onToken) onToken(delta);
-                }
-              } catch {
-                // Fragmento incompleto
-              }
-            }
-          }
-        }
-
-        return fullText;
-      }
-    } catch (err) {
-      clearTimeout(timeoutId);
-      throw err;
+    if (brainRegistry.getConfig().provider === 'deterministic') {
+      throw new Error(
+        'El puente a servidor local está desactivado. Configura Ollama o un endpoint OpenAI-compatible.'
+      );
     }
+
+    const messages: BrainChatMessage[] = [
+      {
+        role: 'system',
+        content: [personality.systemPrompt, groundTruthContext || ''].filter(Boolean).join('\n\n'),
+      },
+      { role: 'user', content: prompt },
+    ];
+
+    const result = await brainRegistry.chat(
+      {
+        messages,
+        temperature: personality.temperature,
+        maxTokens: personality.maxOutputTokens,
+        topP: personality.topP,
+        stop: personality.stopSequences,
+        stream: true,
+      },
+      onToken,
+      signal
+    );
+
+    return result.text;
   }
 }
 

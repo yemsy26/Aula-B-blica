@@ -1,4 +1,4 @@
-const CACHE_NAME = 'verbovivo-v1.0.5';
+const CACHE_NAME = 'verbovivo-v1.0.11';
 
 const PRECACHE_URLS = [
   '/',
@@ -6,6 +6,9 @@ const PRECACHE_URLS = [
   '/manifest.json',
   '/sql-wasm.js',
   '/sql-wasm.wasm',
+  // Runtime del cerebro on-device: sin este archivo el GGUF no puede
+  // ejecutarse cuando la PWA se abre sin red.
+  '/wllama/wllama.wasm',
   '/icon-192.svg',
   '/icon-512.svg',
   '/favicon.svg',

@@ -1,7 +1,14 @@
 import { UserTheologicalLevel, TheologicalRoute, MinistryFormat } from '../shield/types.js';
 import { UserEvolutionProfile, ChatMessage } from '../database/usuarioMemoriaService.js';
 
-export type ModelProfileId = 'ULTRALIGHT' | 'STANDARD' | 'ADVANCED_4B' | 'MAX_8B';
+export type ModelProfileId =
+  | 'ULTRALIGHT'
+  | 'STANDARD'
+  | 'ADVANCED_4B'
+  | 'MAX_8B'
+  // Variante opcional de 0.5B en Q4_0: es la única que el driver Vulkan del
+  // Adreno 750 ejecuta con resultados correctos y acelera (~2,4× sobre CPU).
+  | 'ULTRALIGHT_GPU';
 
 export interface ModelManifest {
   id: ModelProfileId;
@@ -9,7 +16,7 @@ export interface ModelManifest {
   descripcion: string;
   tamanoMb: number;
   cuantizacion: string; // ej: Q3_K_M, Q4_K_M
-  tamanoParametros: string; // ej: 0.8B, 1.5B, 4B, 8B
+  tamanoParametros: string; // tamaño real del archivo, ej: 0.5B, 1.5B, 3B, 7B
   contextoMaxTokens: number;
   ramMinimaRequeridaMb: number;
   totalChunks: number;
@@ -60,7 +67,8 @@ export interface InferenceEngine {
     onToken?: (token: string) => void,
     userProfile?: UserEvolutionProfile | null,
     format?: MinistryFormat,
-    chatHistory?: ChatMessage[]
+    chatHistory?: ChatMessage[],
+    signal?: AbortSignal
   ): Promise<string>;
   releaseMemory(): Promise<void>;
 }
