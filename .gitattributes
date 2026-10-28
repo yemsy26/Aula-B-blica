@@ -15,6 +15,11 @@
 
 # Denote all binary files that should not be modified by Git
 *.wasm binary
+*.so binary
+*.a binary
+*.jar binary
+*.keystore binary
+*.jks binary
 *.png binary
 *.jpg binary
 *.jpeg binary
