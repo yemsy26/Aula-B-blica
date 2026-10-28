@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      Ollama y LM Studio suelen exponerse por HTTP en la red local
+      (http://IP-DE-TU-PC:11434). El tráfico HTTP se limita a este permiso
+      explícito; las llamadas a internet siguen funcionando igual.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
