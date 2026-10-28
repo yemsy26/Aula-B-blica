@@ -11,6 +11,12 @@ if (hasReleaseKeystore) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+// Backend Hexagon experimental: se excluye del APK por defecto. Sus skels
+// DSP se enlazan a 4 KB con el SDK de Qualcomm y no se pueden reenlazar sin
+// él; Android 15 exige 16 KB en toda .so empaquetada. Actívalo solo para
+// pruebas en equipos cuyo firmware permita abrir libcdsprpc.
+def includeHexagon = project.hasProperty('verbovivoHexagon')
+
 android {
     namespace = "org.verbovivo.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -81,6 +87,17 @@ android {
             // (file:///libggml-htp-vXX.so), así que las extraemos al instalar:
             // nativeLibraryDir queda en la búsqueda del linker del proceso.
             useLegacyPackaging = true
+
+            // La NPU Hexagon queda fuera del APK por defecto. Sus imágenes
+            // DSP (libggml-htp-v*.so) las enlaza el SDK de Qualcomm con
+            // páginas de 4 KB y no se pueden reenlazar sin ese SDK; Android
+            // 15 exige 16 KB en toda .so empaquetada. En este firmware la NPU
+            // tampoco es accesible, así que el binario distribuible usa CPU y
+            // Vulkan. Para experimentar en otro equipo:
+            //   ./gradlew assembleDebug -PverbovivoHexagon=true
+            if (!includeHexagon) {
+                excludes += ['**/libggml-hexagon.so', '**/libggml-htp-v*.so']
+            }
         }
     }
 }

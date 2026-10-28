@@ -56,6 +56,14 @@ endif()
 
 add_library(verbovivo_llama_jni SHARED llama_jni.cpp)
 
+# Android 15 admite páginas de 16 KB. El cargador exige que los segmentos de
+# las bibliotecas que mapea el proceso estén alineados a 0x4000; las .so de
+# jniLibs ya se enlazan así y el puente JNI debe seguir el mismo formato.
+target_link_options(verbovivo_llama_jni PRIVATE
+    "-Wl,-z,max-page-size=16384"
+    "-Wl,-z,common-page-size=16384"
+)
+
 target_include_directories(verbovivo_llama_jni PRIVATE
     "${LLAMA_ROOT}/include"
     "${LLAMA_ROOT}/ggml/include"
